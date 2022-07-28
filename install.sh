@@ -5,7 +5,7 @@ echo "=================="
 #check node.json exists here
 
 # pre-reqs
-apt update && sudo apt upgrade
+sudo apt update && sudo apt upgrade
 
 # installing 
 echo "installing docker..."
@@ -13,7 +13,7 @@ wget -O - https://gist.githubusercontent.com/fredhsu/f3d927d765727181767b3b13a3a
 
 # 
 echo "installing Node & Npm..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | -E bash -
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 apt-get install nodejs
 
 #open relevant ports
