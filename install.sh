@@ -4,8 +4,6 @@ echo "=================="
 
 #check node.json exists here
 
-# pre-reqs
-sudo apt update && sudo apt upgrade
 
 # installing 
 echo "installing docker..."
@@ -15,5 +13,10 @@ wget -O - https://gist.githubusercontent.com/fredhsu/f3d927d765727181767b3b13a3a
 echo "installing Node & Npm..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 apt-get install nodejs
+
+# install and run npm v3-manager
+
+# install prometheus node exporter
+sudo apt-get -y install prometheus-node-exporter
 
 #open relevant ports
