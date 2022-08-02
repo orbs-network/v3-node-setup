@@ -4,11 +4,12 @@
 
 -  run the following:
 ``` 
-sudo apt update
-sudo apt upgrade
+sudo su
+apt update
+apt upgrade
 ```
 
-- create node.json
+- create /opt/orbs/node.json
 
 ## orbs node installer
 
