@@ -5,7 +5,7 @@ services:
     image: nginx
     volumes:
       - ./etc/nginx:/etc/nginx
-      - ./var/log/orbs:/var/log
+      - ./var/log/:/var/log
     ports:
       - "80:80"
     environment:
