@@ -49,11 +49,12 @@ echo "==============================================="
 apt install supervisor -y
 
 CONF_FILE="/etc/supervisor/conf.d/manager.conf"
+ORBS_PATH="/opt/orbs"
 touch $CONF_FILE
 
 echo "[program:manager]" > $CONF_FILE
-echo "command=$MANAGER_PATH" >> $
-echo "directory=$ORBS_PATH"
+echo "command=$MANAGER_PATH" >> $CONF_FILE
+echo "directory=$ORBS_PATH" >> $CONF_FILE
 echo "autostart=true" >> $CONF_FILE
 echo "autorestart=true" >> $CONF_FILE
 echo "stderr_logfile=/var/log/v3-node-manager.err.log" >> $CONF_FILE
@@ -71,7 +72,6 @@ echo "================================================"
 echo "== ORBS V3 Node Setup - clone setup to /opt/orbs"
 echo "================================================"
 #wget --no-parent -r https://github.com/orbs-network/v3-node-setup/tree/main/ingress/nginx
-ORBS_PATH="/opt/orbs"
 mkdir -p $ORBS_PATH
 cd $ORBS_PATH
 git clone https://github.com/orbs-network/v3-node-setup.git
