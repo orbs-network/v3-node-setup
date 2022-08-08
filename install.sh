@@ -52,7 +52,8 @@ CONF_FILE="/etc/supervisor/conf.d/manager.conf"
 touch $CONF_FILE
 
 echo "[program:manager]" > $CONF_FILE
-echo "command=$MANAGER_PATH" >> $CONF_FILE
+echo "command=$MANAGER_PATH" >> $
+echo "directory=$ORBS_PATH"
 echo "autostart=true" >> $CONF_FILE
 echo "autorestart=true" >> $CONF_FILE
 echo "stderr_logfile=/var/log/v3-node-manager.err.log" >> $CONF_FILE
@@ -70,8 +71,9 @@ echo "================================================"
 echo "== ORBS V3 Node Setup - clone setup to /opt/orbs"
 echo "================================================"
 #wget --no-parent -r https://github.com/orbs-network/v3-node-setup/tree/main/ingress/nginx
-mkdir -p /opt/orbs
-cd /opt/orbs
+ORBS_PATH="/opt/orbs"
+mkdir -p $ORBS_PATH
+cd $ORBS_PATH
 git clone https://github.com/orbs-network/v3-node-setup.git
 
 # run manager with supervisor
