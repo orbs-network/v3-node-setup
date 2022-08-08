@@ -4,8 +4,10 @@ services:
   ingress:
     image: nginx
     volumes:
-      - ./etc/nginx:/etc/nginx
-      - ./var/log/:/var/log
+      # . current directory is /opt/orbs
+      - /opt/orbs:/opt/orbs
+      - ./swarm/nginx:/etc/nginx
+      - /var/log/:/var/log
     ports:
       - "80:80"
     environment:
