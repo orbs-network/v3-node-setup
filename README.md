@@ -1,14 +1,7 @@
-# v3-node-setup
+# v3-node-setup repo
 
-- ssh to your node
+WIP
 
-- create /opt/orbs/node.json
+## What's this?
 
-- run thr following
-
-```
-sudo su
-apt update
-apt upgrade
-bash <(curl -s https://raw.githubusercontent.com/orbs-network/v3-node-setup/main/install.sh)
-```
+Install scripts and related files for setting up a Orbs v3 validator node
