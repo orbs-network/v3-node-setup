@@ -64,23 +64,24 @@ echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
 apt-get install -qq -y software-properties-common podman docker-compose git cron > /dev/null
 
 # Check if Python is installed
-
+echo -e "${BLUE}Checking if Python is installed...${NC}"
 which python3 &> /dev/null
 
 if [ $? -ne 0 ]; then
     echo "${YELLOW}Python is not installed. Installing now...${NC}"
     apt-get install -y software-properties-common python3 python3-pip
 else
-    echo -e "${GREEN}Python is already installed${NC}"
+    echo -e "${GREEN}Python is already installed!${NC}"
 fi
 
+echo -e "${BLUE}Checking if Pip is installed...${NC}"
 which pip3 &> /dev/null
 
 if [ $? -ne 0 ]; then
-    echo "${YELLOW}pip is not installed. Installing now...${NC}"
+    echo "${YELLOW}Pip is not installed. Installing now...${NC}"
     apt-get install -y python3-pip
 else
-    echo -e "${GREEN}pip is already installed${NC}"
+    echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
 pip install -r /home/setup/requirements.txt

@@ -2,22 +2,32 @@ import os
 import subprocess
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 errors_file = '/opt/orbs/errors.txt'
 node_version = '/opt/orbs/node-version.json'
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def run_command(command: str) -> Optional[str]:
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output, error = process.communicate()
-    # Determining what constitutes an "actual error" is hard - depends on the specific command being run and the context
-    # In this case, we'll consider any non-empty stderr output to be an error so nothing is missed
-    if error:
+def run_command(command: str) -> Tuple[Optional[str], Optional[str]]:
+    """Runs a shell command and returns the output and error message (if any)
+
+    Args:
+        command: The command to run (eg. `docker-compose up -d`)
+
+    Returns:
+        A tuple containing the output and error message (if any)
+    """
+    result = subprocess.run(command, shell=True, capture_output=True)
+    
+    if result.returncode != 0:
+        error_message = result.stderr.decode("utf-8")
         with open(errors_file, "a") as f:
-            f.write(f"{timestamp} - Error occurred: {error.decode().strip()}\n")
-        return None
-    return output.decode().strip()
+            f.write(f"{timestamp} - {error_message.strip()}\n")
+        return None, error_message
+    
+    output = result.stdout.decode("utf-8")
+    return output, None
+        
 
 # TODO - add back when we split into seperate repos
 # # Fetch all the tags from the remote repository
@@ -38,7 +48,10 @@ data["lastUpdated"] = timestamp
 if latest_tag and latest_tag != data["currentVersion"]:
     # checkout_command = f"git checkout {latest_tag}"
     # run_command(checkout_command)  # checkout the latest tag
-    run_command("docker-compose -f /home/deployment/docker-compose.yml up -d")
+    _, error = run_command("docker-compose -f /home/deployment/docker-compose.yml up -d")
+    if error:
+        print("Error running docker-compose")
+    
     data["currentVersion"] = latest_tag
 
 # Write the updated data back to the JSON file
