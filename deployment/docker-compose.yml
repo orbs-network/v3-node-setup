@@ -12,8 +12,9 @@ services:
       - management-service
 
   management-service:
-    image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
-    command: [ "npm", "start", "--", "--config", "/opt/orbs/config.json" ]
+    # image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
+    image: lukerogerson1/mgmt-service-m1:0.0.1
+    command:  "npm start -- --config /opt/orbs/config.json"
     volumes:
         # TEMP: should take values from node.env
       - ./config.json:/opt/orbs/config.json
