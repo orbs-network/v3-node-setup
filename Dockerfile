@@ -1,4 +1,4 @@
-# This creates a temp image to test the installer script
+# This creates a temp image simulating an Ubuntu EC2 to test the installer script
 
 FROM ubuntu:22.10
 ARG DEBIAN_FRONTEND=noninteractive
@@ -21,7 +21,7 @@ RUN useradd -ms /bin/bash ubuntu && \
   chmod 0440 /etc/sudoers.d/ubuntu
 USER ubuntu
 
-WORKDIR /home
+WORKDIR /home/ubuntu
 
 COPY --chown=ubuntu:ubuntu setup setup
 COPY --chown=ubuntu:ubuntu manager manager
