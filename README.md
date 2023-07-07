@@ -18,3 +18,9 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 2. `docker run -p 80:80 --rm -it --privileged test-ubuntu`
 3. `chmod +x ./setup/install.sh`
 4. `source ./setup/install.sh`
+
+### Exposed URLs
+
+#### Management service
+
+1. **status**: http://localhost/services/management-service/status
