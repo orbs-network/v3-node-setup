@@ -85,7 +85,7 @@ fi
 
 # TODO: address warning
 # "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"
-sudo pip install -r /home/setup/requirements.txt
+sudo pip install -r $HOME/setup/requirements.txt
 
 sudo systemctl enable cron
 
@@ -108,7 +108,7 @@ echo "------------------------------------"
 # # TODO: this is the wrong repo
 # git clone https://github.com/orbs-network/v3-deployment.git deployment
 # # Disable detached head warning. This is fine as we are checking out tags
-# cd /home/deployment && git config advice.detachedHead false && cd ..
+# cd $HOMEdeployment && git config advice.detachedHead false && cd ..
 
 # echo -e "${GREEN}Node deployment files downloaded!${NC}"
 # echo "------------------------------------"
@@ -116,15 +116,15 @@ echo "------------------------------------"
 # # ----- CLONE MANAGER -----
 # echo -e "${BLUE}Downloading node manager...${NC}"
 # git clone https://github.com/orbs-network/v3-node-manager.git manager
-# cd /home/manager && git config advice.detachedHead false && cd ..
+# cd $HOMEmanager && git config advice.detachedHead false && cd ..
 
 # echo -e "${GREEN}Node manager downloaded!${NC}"
 # echo "------------------------------------"
 
 # ----- CREATE ETHEREUM PRIVATE KEYS -----
 echo -e "${BLUE}Generating a new Ethereum wallet... ${NC}"
-chmod +x /home/setup/generate_new_wallet.py
-/home/setup/generate_new_wallet.py /opt/orbs
+chmod +x $HOME/setup/generate_new_wallet.py
+$HOME/setup/generate_new_wallet.py /opt/orbs
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}Keys were successfully generated and stored under /opt/orbs/keys.json!${NC}"
@@ -138,13 +138,13 @@ echo "------------------------------------"
 # ----- START MANAGER -----
 echo -e "${BLUE}Starting manager...${NC}"
 # TODO: this should be taken from env vars / provided by user
-cp /home/setup/node-version.json /opt/orbs
+cp $HOME/setup/node-version.json /opt/orbs
 
 # Change ownership of Podman socket to current user. Sleep to make sure Podman service is ready
 sleep 3
 sudo chown $current_user /run/podman/podman.sock
 
-python3 /home/manager/manager.py
+python3 $HOME/manager/manager.py
 
 echo -e "${GREEN}Manager started!${NC}"
 echo "------------------------------------"
@@ -152,8 +152,8 @@ echo "------------------------------------"
 # ----- SETUP MANAGER CRON -----
 echo -e "${BLUE}Adding scheduled manager run...${NC}"
 
-chmod +x /home/manager/manager.py
-sudo crontab /home/setup/deployment-poll.cron
+chmod +x $HOME/manager/manager.py
+sudo crontab $HOME/setup/deployment-poll.cron
 sudo service cron restart
 
 echo -e "${GREEN}Manager schedule set!${NC}"

@@ -48,7 +48,7 @@ data["lastUpdated"] = timestamp
 if latest_tag and latest_tag != data["currentVersion"]:
     # checkout_command = f"git checkout {latest_tag}"
     # run_command(checkout_command)  # checkout the latest tag
-    _, error = run_command("docker-compose -f /home/deployment/docker-compose.yml up -d")
+    _, error = run_command("docker-compose -f /home/ubuntu/deployment/docker-compose.yml up -d")
     if error:
         print("Error running docker-compose")
     

@@ -5,7 +5,7 @@ services:
     ports:
       - 80:80
     volumes:
-      - /home/deployment/nginx.conf:/etc/nginx/conf.d/default.conf # How can this be done more generically?
+      - $HOME/deployment/nginx.conf:/etc/nginx/conf.d/default.conf # How can this be done more generically?
       - /opt/orbs/management-service:/opt/orbs/management-service
     depends_on:
       - management-service
@@ -17,7 +17,7 @@ services:
     command: "npm start -- --config /opt/orbs/config.json"
     volumes:
       # TEMP: should take values from node.env
-      - /home/setup/config.json:/opt/orbs/config.json
+      - $HOME/setup/config.json:/opt/orbs/config.json
       - /opt/orbs/management-service:/opt/orbs/status
     # env_file:
     #   - node.env
