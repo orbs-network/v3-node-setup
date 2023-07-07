@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # TODO
-# - Do we need sudo?
 # - Finalise minimum machine specs
 # - Double check cron job gets persisted between reboots
 
@@ -12,13 +11,8 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# ----- ENSURE CONFIG VARS FILE IS PRESENT -----
-# if [ ! -f ".env" ]; then
-#     echo -e "${RED}Please create a config.json file${NC}"
-#     echo -e "${RED}Exiting...${NC}"
-#     exit 1
-# fi
 
+current_user=$(whoami)
 export DEBIAN_FRONTEND=noninteractive
 
 # ----- CHECK MINIMUM MACHINE SPECS -----
@@ -54,14 +48,16 @@ fi
 echo -e "${GREEN}System meets minimum requirements!${NC}"
 echo "------------------------------------"
 
-mkdir -p /opt/orbs
+sudo mkdir -p /opt/orbs
+sudo chown -R $current_user:$current_user /opt/orbs/
+sudo chmod -R 755 /opt/orbs/
 
 #  ----- INSTALL DEPENDENCIES -----
 echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
-apt-get update -qq && apt-get -y upgrade -qq 
+sudo apt-get update -qq && sudo apt-get -y upgrade -qq 
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-apt-get install -qq -y software-properties-common podman docker-compose git cron > /dev/null
+sudo apt-get install -qq -y software-properties-common podman docker-compose git cron > /dev/null
 
 # Check if Python is installed
 echo -e "${BLUE}Checking if Python is installed...${NC}"
@@ -69,7 +65,7 @@ which python3 &> /dev/null
 
 if [ $? -ne 0 ]; then
     echo "${YELLOW}Python is not installed. Installing now...${NC}"
-    apt-get install -y software-properties-common python3 python3-pip
+    sudo apt-get install -y software-properties-common python3 python3-pip
 else
     echo -e "${GREEN}Python is already installed!${NC}"
 fi
@@ -79,21 +75,25 @@ which pip3 &> /dev/null
 
 if [ $? -ne 0 ]; then
     echo "${YELLOW}Pip is not installed. Installing now...${NC}"
-    apt-get install -y python3-pip
+    sudo apt-get install -y python3-pip
 else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
-pip install -r /home/setup/requirements.txt
+# TODO: address warning
+# "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"
+sudo pip install -r /home/setup/requirements.txt
 
-systemctl enable cron
+sudo systemctl enable cron
 
 # Need to explicitly add docker.io registry
-echo "[registries.search]" > /etc/containers/registries.conf && echo "registries = ['docker.io']" >> /etc/containers/registries.conf
+echo "[registries.search]" | sudo tee /etc/containers/registries.conf
+echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
+
 
 # This is needed so Docker Compose can interact with Podman instead of the default Docker daemon
-mkdir -p /run/podman
-podman system service -t 0 unix:///run/podman/podman.sock &
+sudo mkdir -p /run/podman
+sudo podman system service -t 0 unix:///run/podman/podman.sock &
 export DOCKER_HOST=unix:///run/podman/podman.sock
 
 echo -e "${GREEN}Finished installing dependencies!${NC}"
@@ -134,7 +134,13 @@ echo "------------------------------------"
 
 # ----- START MANAGER -----
 echo -e "${BLUE}Starting manager...${NC}"
+# TODO: this should be taken from env vars / provided by user
 cp /home/setup/node-version.json /opt/orbs
+
+# Change ownership of Podman socket to current user. Sleep to make sure Podman service is ready
+sleep 3
+sudo chown $current_user /run/podman/podman.sock
+
 python3 /home/manager/manager.py
 
 echo -e "${GREEN}Manager started!${NC}"
@@ -144,8 +150,8 @@ echo "------------------------------------"
 echo -e "${BLUE}Adding scheduled manager run...${NC}"
 
 chmod +x /home/manager/manager.py
-crontab /home/setup/deployment-poll.cron
-service cron restart
+sudo crontab /home/setup/deployment-poll.cron
+sudo service cron restart
 
 echo -e "${GREEN}Manager schedule set!${NC}"
 echo "------------------------------------"
