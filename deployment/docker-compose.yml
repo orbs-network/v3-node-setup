@@ -12,13 +12,20 @@ services:
       - management-service
 
   management-service:
-    image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
-    command: [ "npm", "start", "--", "--config", "/opt/orbs/config.json" ]
+    image: orbsnetworkstaging/management-service:v2.5.1-m1
+    command:
+      [
+        "npm",
+        "start",
+        "--",
+        "--config",
+        "/opt/orbs/config.json"
+      ]
     volumes:
-        # TEMP: should take values from node.env
+      # TEMP: should take values from node.env
       - ./config.json:/opt/orbs/config.json
       # This is done to expose the status.json outside of the container for nginx. Can we improve this?
       - ./status:/opt/orbs/status
     # env_file:
     #   - node.env
-  
+
