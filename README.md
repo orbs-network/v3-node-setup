@@ -16,5 +16,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 
 1. `docker build -t test-ubuntu .`
 2. `docker run --rm -it --privileged test-ubuntu`
-3. `chmod +x ./setup/install.sh`
-4. `source ./setup/install.sh`
+3. `source ./setup/install.sh --skip-req`
+
+### install flags for dev
+- `--skip-req` skip requirement checks for docker
