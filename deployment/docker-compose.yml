@@ -14,14 +14,20 @@ services:
       - management-service
 
   management-service:
-    image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
-    # Uncomment to use local image with M1 Mac
-    # image: lukerogerson1/management-service:v0.0.1-m1
-    command:  "npm start -- --config /opt/orbs/config.json"
+    image: orbsnetworkstaging/management-service:v2.5.1-m1
+    command:
+      [
+        "npm",
+        "start",
+        "--",
+        "--config",
+        "/opt/orbs/config.json"
+      ]
     volumes:
-        # TEMP: should take values from node.env
-      - $HOME/setup/config.json:/opt/orbs/config.json
-      - /opt/orbs/management-service:/opt/orbs/status
+      # TEMP: should take values from node.env
+      - ./config.json:/opt/orbs/config.json
+      # This is done to expose the status.json outside of the container for nginx. Can we improve this?
+      - ./status:/opt/orbs/status
     # env_file:
     #   - node.env
-  
+
