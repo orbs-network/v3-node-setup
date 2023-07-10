@@ -16,37 +16,40 @@ current_user=$(whoami)
 export DEBIAN_FRONTEND=noninteractive
 
 # ----- CHECK MINIMUM MACHINE SPECS -----
-echo -e "${BLUE}Checking machine meets minimum hardware requirements...${NC}"
-# Min specs
-MIN_CPU=4   # in cores
-MIN_MEMORY=8   # in GB
-MIN_DISK=20 # in GB
 
-# Get current machine specs
-CPU=$(nproc --all)
-RAM=$(free -g | awk '/^Mem:/{print $2}')
-DISK=$(df -BG / | awk 'NR==2{print substr($4, 1, length($4)-1)}')
+if [ "$1" != "--skip-req" ]; then
+    echo -e "${BLUE}Checking machine meets minimum hardware requirements...${NC}"
+    # Min specs
+    MIN_CPU=4   # in cores
+    MIN_MEMORY=8   # in GB
+    MIN_DISK=20 # in GB
 
-# Check CPU
-if [ $CPU -lt $MIN_CPU ]; then
-    echo -e "${RED}Insufficient CPU cores. Required: $MIN_CPU, Available: $CPU.${NC}"
-    exit 1
-fi
+    # Get current machine specs
+    CPU=$(nproc --all)
+    RAM=$(free -g | awk '/^Mem:/{print $2}')
+    DISK=$(df -BG / | awk 'NR==2{print substr($4, 1, length($4)-1)}')
 
-# Check RAM
-if [ $RAM -lt $MIN_MEMORY ]; then
-    echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB."
-    exit 1
-fi
+    # Check CPU
+    if [ $CPU -lt $MIN_CPU ]; then
+        echo -e "${RED}Insufficient CPU cores. Required: $MIN_CPU, Available: $CPU.${NC}"
+        exit 1
+    fi
 
-# Check Disk
-if [ $DISK -lt $MIN_DISK ]; then
-    echo -e "${RED}Insufficient Disk space. Required: $MIN_DISK GB, Available: $DISK GB.${NC}"
-    exit 1
-fi
+    # Check RAM
+    if [ $RAM -lt $MIN_MEMORY ]; then
+        echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB."
+        exit 1
+    fi
 
-echo -e "${GREEN}System meets minimum requirements!${NC}"
-echo "------------------------------------"
+    # Check Disk
+    if [ $DISK -lt $MIN_DISK ]; then
+        echo -e "${RED}Insufficient Disk space. Required: $MIN_DISK GB, Available: $DISK GB.${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}System meets minimum requirements!${NC}"
+    echo "------------------------------------"
+fi # end reqs
 
 sudo mkdir -p /opt/orbs
 sudo chown -R $current_user:$current_user /opt/orbs/
