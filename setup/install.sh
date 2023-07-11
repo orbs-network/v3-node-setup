@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 
 
 current_user=$(whoami)
+
 export DEBIAN_FRONTEND=noninteractive
 
 # ----- CHECK MINIMUM MACHINE SPECS -----
@@ -57,14 +58,34 @@ echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq 
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-sudo apt-get install -qq -y software-properties-common podman docker-compose git cron > /dev/null
+sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > /dev/null
+
+# TODO: remove this conditional. This is only here as systemctl is not available in Docker containers
+if [ -f /.dockerenv ]; then
+    echo -e "${YELLOW}Running in Docker container${NC}"
+    sudo mkdir -p /run/podman
+    sudo podman system service -t 0 unix:///run/podman/podman.sock &
+    export DOCKER_HOST=unix:///run/podman/podman.sock
+    # Change ownership of Podman socket to current user. Sleep to make sure Podman service is ready
+    sleep 3
+    sudo chown $current_user /run/podman/podman.sock
+else
+    echo -e "${YELLOW}Not running in Docker container${NC}"
+    # https://bugs.launchpad.net/ubuntu/+source/libpod/+bug/2024394/comments/4
+    curl -O http://archive.ubuntu.com/ubuntu/pool/universe/g/golang-github-containernetworking-plugins/containernetworking-plugins_1.1.1+ds1-1_amd64.deb
+    sudo dpkg -i containernetworking-plugins_1.1.1+ds1-1_amd64.deb
+    systemctl --user start podman.socket
+    export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
+    echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
+    sudo sysctl -p
+fi
 
 # Check if Python is installed
 echo -e "${BLUE}Checking if Python is installed...${NC}"
 which python3 &> /dev/null
 
 if [ $? -ne 0 ]; then
-    echo "${YELLOW}Python is not installed. Installing now...${NC}"
+    echo -e "${YELLOW}Python is not installed. Installing now...${NC}"
     sudo apt-get install -y software-properties-common python3 python3-pip
 else
     echo -e "${GREEN}Python is already installed!${NC}"
@@ -74,7 +95,7 @@ echo -e "${BLUE}Checking if Pip is installed...${NC}"
 which pip3 &> /dev/null
 
 if [ $? -ne 0 ]; then
-    echo "${YELLOW}Pip is not installed. Installing now...${NC}"
+    echo -e "${YELLOW}Pip is not installed. Installing now...${NC}"
     sudo apt-get install -y python3-pip
 else
     echo -e "${GREEN}Pip is already installed!${NC}"
@@ -89,12 +110,6 @@ sudo systemctl enable cron
 # Need to explicitly add docker.io registry
 echo "[registries.search]" | sudo tee /etc/containers/registries.conf
 echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
-
-
-# This is needed so Docker Compose can interact with Podman instead of the default Docker daemon
-sudo mkdir -p /run/podman
-sudo podman system service -t 0 unix:///run/podman/podman.sock &
-export DOCKER_HOST=unix:///run/podman/podman.sock
 
 echo -e "${GREEN}Finished installing dependencies!${NC}"
 echo "------------------------------------"
@@ -136,10 +151,6 @@ echo "------------------------------------"
 echo -e "${BLUE}Starting manager...${NC}"
 # TODO: this should be taken from env vars / provided by user
 cp $HOME/setup/node-version.json /opt/orbs
-
-# Change ownership of Podman socket to current user. Sleep to make sure Podman service is ready
-sleep 3
-sudo chown $current_user /run/podman/podman.sock
 
 python3 $HOME/manager/manager.py
 
