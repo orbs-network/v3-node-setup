@@ -1,6 +1,6 @@
 # v3-node-setup repo
 
-WIP
+**⚠️ WIP ⚠️**
 
 ## What's this?
 
@@ -9,7 +9,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 ## Folders
 
 - `deployment` - Manifest files. These will eventually live at https://github.com/orbs-network/v3-deployment
-- `manager` - Python manager. These will eventually live at https://github.com/orbs-network/v3-node-manager
+- `manager` - Validator Python manager. These files will eventually live at https://github.com/orbs-network/v3-node-manager
 - `setup` - Install scripts. These files will eventually live by themselves in this current repo (https://github.com/orbs-network/v3-node-setup)
 
 ## Developing
@@ -18,15 +18,16 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 2. `docker run -p 80:80 --rm -it --privileged test-ubuntu`
 3. `source ./setup/install.sh --skip-req`
 
-# Sanity
-1. from mac host `curl http://localhost/service/management-service/status`
-
 ### Install flags for dev
 
 - `--skip-req`: Skip minimum machine spec requirement checks
+
+### Sanity
+
+From Mac host, run `curl http://localhost/service/management-service/status`
 
 ### Exposed URLs
 
 #### Management service
 
-- **status**: http://localhost/services/management-service/status
+- **status**: http://localhost/service/management-service/status
