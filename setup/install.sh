@@ -16,6 +16,12 @@ current_user=$(whoami)
 
 export DEBIAN_FRONTEND=noninteractive
 
+# HANDLE VERBOSE FLAG
+redirect="/dev/null"
+if [[ $* == *--verbose* || $* == *-v* ]]; then
+  redirect="/dev/stdout"
+fi
+
 # ----- CHECK MINIMUM MACHINE SPECS -----
 
 if [ "$1" != "--skip-req" ]; then
@@ -38,7 +44,7 @@ if [ "$1" != "--skip-req" ]; then
 
     # Check RAM
     if [ $RAM -lt $MIN_MEMORY ]; then
-        echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB."
+        echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB.${NC}"
         exit 1
     fi
 
@@ -61,7 +67,7 @@ echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq 
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > /dev/null
+sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
 
 # TODO: remove this conditional. This is only here as systemctl is not available in Docker containers
 if [ -f /.dockerenv ]; then
