@@ -137,14 +137,29 @@ echo "------------------------------------"
 # echo "------------------------------------"
 
 # ----- CREATE ETHEREUM PRIVATE KEYS -----
-echo -e "${BLUE}Generating a new Ethereum wallet... ${NC}"
-chmod +x $HOME/setup/generate_new_wallet.py
-$HOME/setup/generate_new_wallet.py /opt/orbs
+chmod +x $HOME/setup/generate_wallet.py
+
+until [[ $answer == "new" || $answer == "import" ]]; do
+        read -p 'Type "new" to to create a new wallet key pair, or "import" to import an existing one using you private key:' answer
+done
+
+case $answer in
+        "new")
+            echo "You chose to create a new key pair"
+            $HOME/setup/generate_wallet.py --path /opt/orbs --new_key
+            ;;
+        "import")
+            echo "You chose to import an existing private key"
+            echo "Enter the key:"
+            read -s key
+            $HOME/setup/generate_wallet.py --path /opt/orbs --import_key $key
+            ;;
+esac
 
 if [ $? -eq 0 ]; then
-  echo -e "${GREEN}Keys were successfully generated and stored under /opt/orbs/keys.json!${NC}"
+  echo -e "${GREEN}Keys were successfully stored under /opt/orbs/keys.json!${NC}"
 else
-  echo "${RED}generate_new_wallet script failed ${NC}"
+  echo "${RED}generation of keys failed ${NC}"
 fi
 
 echo -e "${GREEN}Ethereum wallet generated!${NC}"

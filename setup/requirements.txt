@@ -1,2 +1,4 @@
 pysha3==1.0.2
+eth-keys==0.4.0
+eth-utils==2.2.0
 coincurve==18.0.0
