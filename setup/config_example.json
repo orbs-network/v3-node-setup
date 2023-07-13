@@ -1,0 +1,8 @@
+{
+  "BootstrapMode": false,
+  "DeploymentDescriptorUrl": "https://amihaz.github.io/staging-deployment/staging.json",
+  "ElectionsAuditOnly": true,
+  "EthereumEndpoint": "https://mainnet.infura.io/v3/YOUR-API-KEY",
+  "MaticEndpoint": "https://polygon-mainnet.g.alchemy.com/v2/YOUR-API-KEY",
+  "node-address": "YOUR-NODE-ADDRESS"
+}
