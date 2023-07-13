@@ -66,19 +66,19 @@ sudo apt-get install -qq -y software-properties-common podman docker-compose cur
 # TODO: remove this conditional. This is only here as systemctl is not available in Docker containers
 if [ -f /.dockerenv ]; then
     echo -e "${YELLOW}Running in Docker container${NC}"
-    sudo mkdir -p /run/podman
-    sudo podman system service -t 0 unix:///run/podman/podman.sock &
-    export DOCKER_HOST=unix:///run/podman/podman.sock
-    # Change ownership of Podman socket to current user. Sleep to make sure Podman service is ready
-    sleep 3
-    sudo chown $current_user /run/podman/podman.sock
+    mkdir -p ~/.local/run/podman
+    # Start Podman service as current user, not root
+    podman system service -t 0 unix://$HOME/.local/run/podman/podman.sock &> /dev/null &
+    echo 'export DOCKER_HOST=unix://'$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
+    source ~/.bashrc
 else
     echo -e "${YELLOW}Not running in Docker container${NC}"
     # https://bugs.launchpad.net/ubuntu/+source/libpod/+bug/2024394/comments/4
     curl -O http://archive.ubuntu.com/ubuntu/pool/universe/g/golang-github-containernetworking-plugins/containernetworking-plugins_1.1.1+ds1-1_amd64.deb
     sudo dpkg -i containernetworking-plugins_1.1.1+ds1-1_amd64.deb
     systemctl --user start podman.socket
-    export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
+    echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
+    source ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
 fi

@@ -14,6 +14,8 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 
 ## Developing
 
+**❗ For current backwards compatibility, ensure you have created a `config.json` inside the `setup` folder. See `config_example.json` for more details.**
+
 1. `docker build -t test-ubuntu .`
 2. `docker run -p 80:80 --rm -it --privileged test-ubuntu`
 3. `source ./setup/install.sh --skip-req`
