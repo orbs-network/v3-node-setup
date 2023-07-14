@@ -162,6 +162,8 @@ echo -e "${BLUE}Starting manager...${NC}"
 cp $HOME/setup/node-version.json /opt/orbs
 
 python3 $HOME/manager/manager.py
+# TODO: this should be run as a service
+python3 $HOME/setup/log_forward.py &> /dev/null &
 
 echo -e "${GREEN}Manager started!${NC}"
 echo "------------------------------------"
