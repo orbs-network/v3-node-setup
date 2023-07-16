@@ -11,6 +11,14 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+echo -e "${BLUE}
+      ██████╗ ██████╗ ██████╗ ███████╗
+      ██╔═══██╗██╔══██╗██╔══██╗██╔════╝
+      ██║   ██║██████╔╝██████╔╝███████╗
+      ██║   ██║██╔══██╗██╔══██╗╚════██║
+      ╚██████╔╝██║  ██║██████╔╝███████║
+       ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
+                                       ${NC}"
 
 current_user=$(whoami)
 
@@ -142,25 +150,26 @@ echo "------------------------------------"
 # echo -e "${GREEN}Node manager downloaded!${NC}"
 # echo "------------------------------------"
 
-# ----- CREATE ETHEREUM PRIVATE KEYS -----
+# ----- NODE ADDRESS GENERATION -----
 chmod +x $HOME/setup/generate_wallet.py
 
-until [[ $answer == "new" || $answer == "import" ]]; do
-        read -p 'Type "new" to to create a new wallet key pair, or "import" to import an existing one using you private key:' answer
-done
+echo -e "${BLUE}* Node address generation *${NC}"
 
-case $answer in
-        "new")
-            echo "You chose to create a new key pair"
-            $HOME/setup/generate_wallet.py --path /opt/orbs --new_key
-            ;;
-        "import")
-            echo "You chose to import an existing private key"
-            echo "Enter the key:"
-            read -s key
-            $HOME/setup/generate_wallet.py --path /opt/orbs --import_key $key
-            ;;
-esac
+while true; do
+    read -sp "Press Enter to create a new wallet or provide a private key you wish to import: " input
+
+    if [[ -z "$input" ]]; then
+        echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
+        $HOME/setup/generate_wallet.py --path /opt/orbs --new_key
+        break
+    elif [[ $input =~ ^(0x)?[0-9a-fA-F]{64}$ ]]; then
+        echo -e "${YELLOW}\nThe private key is valid. Importing the wallet...${NC}"
+        $HOME/setup/generate_wallet.py --path /opt/orbs --import_key $input
+        break
+    else
+        echo -e "${YELLOW}\nInvalid input. A valid private key should be a 64-character hexadecimal string (optionally prefixed with '0x'). Please try again.${NC}"
+    fi
+done
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}Keys were successfully stored under /opt/orbs/keys.json!${NC}"
@@ -168,7 +177,6 @@ else
   echo "${RED}generation of keys failed ${NC}"
 fi
 
-echo -e "${GREEN}Ethereum wallet generated!${NC}"
 echo "------------------------------------"
 
 # ----- START MANAGER -----
