@@ -11,10 +11,24 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+echo -e "${BLUE}
+      ██████╗ ██████╗ ██████╗ ███████╗
+      ██╔═══██╗██╔══██╗██╔══██╗██╔════╝
+      ██║   ██║██████╔╝██████╔╝███████╗
+      ██║   ██║██╔══██╗██╔══██╗╚════██║
+      ╚██████╔╝██║  ██║██████╔╝███████║
+       ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
+                                       ${NC}"
 
 current_user=$(whoami)
 
 export DEBIAN_FRONTEND=noninteractive
+
+# HANDLE VERBOSE FLAG
+redirect="/dev/null"
+if [[ $* == *--verbose* || $* == *-v* ]]; then
+  redirect="/dev/stdout"
+fi
 
 # ----- CHECK MINIMUM MACHINE SPECS -----
 
@@ -38,7 +52,7 @@ if [ "$1" != "--skip-req" ]; then
 
     # Check RAM
     if [ $RAM -lt $MIN_MEMORY ]; then
-        echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB."
+        echo -e "${RED}Insufficient memory. Required: $MIN_MEMORY GB, Available: $RAM GB.${NC}"
         exit 1
     fi
 
@@ -61,7 +75,7 @@ echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq 
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > /dev/null
+sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
 
 # TODO: remove this conditional. This is only here as systemctl is not available in Docker containers
 if [ -f /.dockerenv ]; then
@@ -142,18 +156,33 @@ echo "------------------------------------"
 # echo -e "${GREEN}Node manager downloaded!${NC}"
 # echo "------------------------------------"
 
-# ----- CREATE ETHEREUM PRIVATE KEYS -----
-echo -e "${BLUE}Generating a new Ethereum wallet... ${NC}"
-chmod +x $HOME/setup/generate_new_wallet.py
-$HOME/setup/generate_new_wallet.py /opt/orbs
+# ----- NODE ADDRESS GENERATION -----
+chmod +x $HOME/setup/generate_wallet.py
+
+echo -e "${BLUE}* Node address generation *${NC}"
+
+while true; do
+    read -sp "Press Enter to create a new wallet or provide a private key you wish to import: " input
+
+    if [[ -z "$input" ]]; then
+        echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
+        $HOME/setup/generate_wallet.py --path /opt/orbs --new_key
+        break
+    elif [[ $input =~ ^(0x)?[0-9a-fA-F]{64}$ ]]; then
+        echo -e "${YELLOW}\nThe private key is valid. Importing the wallet...${NC}"
+        $HOME/setup/generate_wallet.py --path /opt/orbs --import_key $input
+        break
+    else
+        echo -e "${YELLOW}\nInvalid input. A valid private key should be a 64-character hexadecimal string (optionally prefixed with '0x'). Please try again.${NC}"
+    fi
+done
 
 if [ $? -eq 0 ]; then
-  echo -e "${GREEN}Keys were successfully generated and stored under /opt/orbs/keys.json!${NC}"
+  echo -e "${GREEN}Keys were successfully stored under /opt/orbs/keys.json!${NC}"
 else
-  echo "${RED}generate_new_wallet script failed ${NC}"
+  echo "${RED}generation of keys failed ${NC}"
 fi
 
-echo -e "${GREEN}Ethereum wallet generated!${NC}"
 echo "------------------------------------"
 
 # ----- START MANAGER -----
