@@ -97,12 +97,6 @@ else
     sudo sysctl -p
 fi
 
-# Update Podman log settings
-podman_conf_path="/usr/share/containers/containers.conf"
-sudo sed -i 's/#log_driver = "k8s-file"/log_driver = "k8s-file"/' "$podman_conf_path"
-sudo sed -i 's/#log_size_max = -1/log_size_max = 10485760/' "$podman_conf_path"
-echo "Updated Podman container.conf settings"
-
 # Check if Python is installed
 echo -e "${BLUE}Checking if Python is installed...${NC}"
 which python3 &> /dev/null
@@ -191,8 +185,6 @@ echo -e "${BLUE}Starting manager...${NC}"
 cp $HOME/setup/node-version.json /opt/orbs
 
 python3 $HOME/manager/manager.py
-# TODO: this should be run as a service
-python3 $HOME/setup/log_forward.py &> /dev/null &
 
 echo -e "${GREEN}Manager started!${NC}"
 echo "------------------------------------"
