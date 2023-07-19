@@ -182,16 +182,6 @@ fi
 echo "------------------------------------"
 
 # ----- GENERATE ENV FILES -----
-#while true; do
-#    read -p "Please enter an RPC provider URL for Ethereum (e.g. Infura URL): " rpc_url
-#
-#    if [[ $rpc_url =~ ^https?://.*\/.* ]]; then
-#        break
-#    else
-#        echo -e "${YELLOW}\nInvalid URL input. Please try again.${NC}"
-#    fi
-#done
-
 chmod +x $HOME/setup/generate_env_files.py
 $HOME/setup/generate_env_files.py --keys $keys_path --env_dir "$HOME/deployment" # TODO: deprecate config.json
 
