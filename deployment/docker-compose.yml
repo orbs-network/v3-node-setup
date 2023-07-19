@@ -21,6 +21,7 @@ services:
       # TEMP: should take values from node.env
       - $HOME/setup/config.json:/opt/orbs/config.json
       - /opt/orbs/management-service:/opt/orbs/status
-    # env_file:
-    #   - node.env
+    env_file:
+      - public.env
+      - private.env
 
