@@ -11,6 +11,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 - `deployment` - Manifest files. These will eventually live at https://github.com/orbs-network/v3-deployment
 - `manager` - Validator Python manager. These files will eventually live at https://github.com/orbs-network/v3-node-manager
 - `setup` - Install scripts. These files will eventually live by themselves in this current repo (https://github.com/orbs-network/v3-node-setup)
+- `logging` - A service to expose container logs. These files will also live elsewhere in the future TBD
 
 ## Developing
 
@@ -33,3 +34,4 @@ From Mac host, run `curl http://localhost/service/management-service/status`
 #### Management service
 
 - **status**: http://localhost/service/management-service/status
+- **logs**: http://localhost/service/management-service/logs

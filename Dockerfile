@@ -26,5 +26,6 @@ WORKDIR /home/ubuntu
 COPY --chown=ubuntu:ubuntu setup setup
 COPY --chown=ubuntu:ubuntu manager manager
 COPY --chown=ubuntu:ubuntu deployment deployment
+COPY --chown=ubuntu:ubuntu logging logging
 
 CMD ["/bin/bash"]
