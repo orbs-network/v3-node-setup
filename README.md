@@ -24,6 +24,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 ### Install flags for dev
 
 - `--skip-req`: Skip minimum machine spec requirement checks
+- `--verbose`: Display detailed logging output
 
 ### Sanity
 
