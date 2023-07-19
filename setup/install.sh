@@ -84,6 +84,7 @@ if [ -f /.dockerenv ]; then
     # Start Podman service as current user, not root
     podman system service -t 0 unix://$HOME/.local/run/podman/podman.sock &> /dev/null &
     echo 'export DOCKER_HOST=unix://'$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
+    echo 'export PODMAN_SOCKET_PATH='$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
     source ~/.bashrc
 else
     echo -e "${YELLOW}Not running in Docker container${NC}"
@@ -92,10 +93,17 @@ else
     sudo dpkg -i containernetworking-plugins_1.1.1+ds1-1_amd64.deb
     systemctl --user start podman.socket
     echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
+    echo 'export PODMAN_SOCKET_PATH=$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     source ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
 fi
+
+# Update Podman log settings
+podman_conf_path="/usr/share/containers/containers.conf"
+sudo sed -i 's/#log_driver = "k8s-file"/log_driver = "k8s-file"/' "$podman_conf_path"
+sudo sed -i 's/#log_size_max = -1/log_size_max = 10485760/' "$podman_conf_path"
+echo "Updated Podman container.conf settings"
 
 # Check if Python is installed
 echo -e "${BLUE}Checking if Python is installed...${NC}"
