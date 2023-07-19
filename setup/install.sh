@@ -73,7 +73,7 @@ sudo chmod -R 755 /opt/orbs/
 #  ----- INSTALL DEPENDENCIES -----
 echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
-sudo apt-get update -qq && sudo apt-get -y upgrade -qq 
+sudo NEEDRESTART_MODE=l apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
 sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
 
@@ -159,20 +159,22 @@ echo "------------------------------------"
 # echo "------------------------------------"
 
 # ----- NODE ADDRESS GENERATION -----
+keys_path=/opt/orbs/keys.json
+
 chmod +x $HOME/setup/generate_wallet.py
 
 echo -e "${BLUE}* Node address generation *${NC}"
 
 while true; do
-    read -sp "Press Enter to create a new wallet or provide a private key you wish to import: " input
+    read -sp "Press [Enter] to create a new wallet or provide a private key you wish to import: " input
 
     if [[ -z "$input" ]]; then
         echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
-        $HOME/setup/generate_wallet.py --path /opt/orbs --new_key
+        $HOME/setup/generate_wallet.py --path $keys_path --new_key
         break
     elif [[ $input =~ ^(0x)?[0-9a-fA-F]{64}$ ]]; then
         echo -e "${YELLOW}\nThe private key is valid. Importing the wallet...${NC}"
-        $HOME/setup/generate_wallet.py --path /opt/orbs --import_key $input
+        $HOME/setup/generate_wallet.py --path $keys_path --import_key $input
         break
     else
         echo -e "${YELLOW}\nInvalid input. A valid private key should be a 64-character hexadecimal string (optionally prefixed with '0x'). Please try again.${NC}"
@@ -180,12 +182,22 @@ while true; do
 done
 
 if [ $? -eq 0 ]; then
-  echo -e "${GREEN}Keys were successfully stored under /opt/orbs/keys.json!${NC}"
+  echo -e "${GREEN}Keys were successfully stored under ${keys_path}!${NC}"
 else
   echo "${RED}generation of keys failed ${NC}"
 fi
 
 echo "------------------------------------"
+
+# ----- GENERATE ENV FILES -----
+chmod +x $HOME/setup/generate_env_files.py
+$HOME/setup/generate_env_files.py --keys $keys_path --env_dir "$HOME/deployment" # TODO: deprecate config.json
+
+if [ $? -eq 0 ]; then
+  echo -e "${GREEN}env files were successfully stored under $HOME/deployment${NC}"
+else
+  echo "${RED}generation of env files failed ${NC}"
+fi
 
 # ----- START MANAGER -----
 echo -e "${BLUE}Starting manager...${NC}"
