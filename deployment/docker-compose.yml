@@ -3,6 +3,7 @@ version: '3.8'
 services:
 
   nginx:
+    container_name: nginx
     image: nginx:latest
     ports:
       - 80:80
@@ -13,6 +14,7 @@ services:
       - management-service
 
   management-service:
+    container_name: management-service
     # Uncomment to use amd64 image
     # image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
     image: orbsnetworkstaging/management-service:v2.5.1-m1
@@ -24,4 +26,11 @@ services:
     env_file:
       - public.env
       - private.env
+
+  logs:
+      container_name: logs
+      # TODO: move to Orbs Docker Hub repo
+      image: lukerogerson1/v3-logging:0.0.1
+      volumes:
+        - $PODMAN_SOCKET_PATH:/var/run/docker.sock
 
