@@ -73,7 +73,7 @@ sudo chmod -R 755 /opt/orbs/
 #  ----- INSTALL DEPENDENCIES -----
 echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
-sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf # disables the restart modal
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
 sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
