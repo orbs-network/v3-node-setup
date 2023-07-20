@@ -73,7 +73,8 @@ sudo chmod -R 755 /opt/orbs/
 #  ----- INSTALL DEPENDENCIES -----
 echo -e "${BLUE}Installing dependencies...${NC}"
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
-sudo NEEDRESTART_MODE=l apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
+sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+sudo apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
 sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
 
@@ -111,7 +112,7 @@ which python3 &> /dev/null
 
 if [ $? -ne 0 ]; then
     echo -e "${YELLOW}Python is not installed. Installing now...${NC}"
-    sudo apt-get install -y software-properties-common python3 python3-pip
+    sudo apt-get install -y software-properties-common python3 python3-pip > "$redirect" 2>&1
 else
     echo -e "${GREEN}Python is already installed!${NC}"
 fi
@@ -121,7 +122,7 @@ which pip3 &> /dev/null
 
 if [ $? -ne 0 ]; then
     echo -e "${YELLOW}Pip is not installed. Installing now...${NC}"
-    sudo apt-get install -y python3-pip
+    sudo apt-get install -y python3-pip > "$redirect" 2>&1
 else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
