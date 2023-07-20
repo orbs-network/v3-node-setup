@@ -54,7 +54,6 @@ app.get("/service/:name/logs", (req: Request, res: Response) => {
         console.error("500 error: ", resp);
         res.status(500).send("An internal error occurred. Try again later");
       } else {
-        console.log("BACK TO SQUARE THREE!!!");
         let data = "";
         // Log will be max 10MB due to log rotation
         resp.on("data", (chunk: Buffer) => {
