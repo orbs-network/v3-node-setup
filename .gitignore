@@ -2,3 +2,5 @@ config.json
 
 *venv
 node_modules
+
+links.sh
