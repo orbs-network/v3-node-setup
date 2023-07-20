@@ -76,7 +76,12 @@ echo -e "${BLUE}Installing dependencies...${NC}"
 sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf # disables the restart modal
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-sudo apt-get install -qq -y software-properties-common podman docker-compose curl git cron > "$redirect" 2>&1
+sudo apt-get install -qq -y software-properties-common podman curl git cron > "$redirect" 2>&1
+echo -e "${BLUE}$(podman --version)${NC}"
+# https://docs.docker.com/compose/install/standalone/
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+echo -e "${BLUE}$(docker-compose --version)${NC}"
 
 # TODO: remove this conditional. This is only here as systemctl is not available in Docker containers
 if [ -f /.dockerenv ]; then
@@ -86,7 +91,6 @@ if [ -f /.dockerenv ]; then
     podman system service -t 0 unix://$HOME/.local/run/podman/podman.sock &> /dev/null &
     echo 'export DOCKER_HOST=unix://'$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
     echo 'export PODMAN_SOCKET_PATH='$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
-    source ~/.bashrc
 else
     echo -e "${YELLOW}Not running in Docker container${NC}"
     # https://bugs.launchpad.net/ubuntu/+source/libpod/+bug/2024394/comments/4
@@ -95,10 +99,12 @@ else
     systemctl --user start podman.socket
     echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     echo 'export PODMAN_SOCKET_PATH=$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
-    source ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
 fi
+
+echo "alias docker=podman" >> ~/.bashrc
+source ~/.bashrc
 
 # Update Podman log settings
 podman_conf_path="/usr/share/containers/containers.conf"
@@ -220,6 +226,12 @@ sudo service cron restart
 echo -e "${GREEN}Manager schedule set!${NC}"
 echo "------------------------------------"
 
-echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
-
-
+# ----- SANITY CHECK -----
+echo -e "${BLUE}Performing a health check...${NC}"
+sleep 3 # Wait for management service to start
+mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/management-service/status)
+if [ $mgmt_svs_status_code -eq 200 ]; then
+    echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
+else
+    echo -e "${RED}Installation incomplete!${NC}"
+fi
