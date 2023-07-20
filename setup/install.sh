@@ -173,7 +173,7 @@ chmod +x $HOME/setup/generate_wallet.py
 echo -e "${BLUE}* Node address generation *${NC}"
 
 while true; do
-    read -sp "Press [Enter] to create a new wallet or provide a private key you wish to import: " input
+    input=${PRIVATE_KEY:-$(read -sp "Press [Enter] to create a new wallet or provide a private key you wish to import: " && echo "$REPLY")}
 
     if [[ -z "$input" ]]; then
         echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
