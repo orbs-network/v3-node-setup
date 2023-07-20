@@ -12,5 +12,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Dependencies and Configure Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common python3 python3-pip sudo locales
+
+          sudo locale-gen en_US.UTF-8
+          sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+
+          sudo sh -c 'echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d'
+
+          sudo useradd -ms /bin/bash ubuntu
+          sudo sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu'
+          sudo chmod 0440 /etc/sudoers.d/ubuntu
+
+      - name: Set User and Working Directory
+        run: |
+          sudo chown -R ubuntu:ubuntu /home/ubuntu
+        working-directory: /home/ubuntu
+
       - name: Print Hello, World
         run: echo "Hello, world"
