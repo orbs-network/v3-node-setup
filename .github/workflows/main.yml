@@ -12,24 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Dependencies and Configure Environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common python3 python3-pip sudo locales
-
-          sudo locale-gen en_US.UTF-8
-          sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-
-          sudo sh -c 'echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d'
-
-          sudo useradd -ms /bin/bash ubuntu
-          sudo sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu'
-          sudo chmod 0440 /etc/sudoers.d/ubuntu
-
-      - name: Set User and Working Directory
-        run: |
-          sudo chown -R ubuntu:ubuntu /home/ubuntu
-        working-directory: /home/ubuntu
+      # - name: Install Dependencies and Configure Environment
+      #   run: |
+      #     sudo useradd -ms /bin/bash ubuntu
+      #     sudo sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu'
+      #     sudo chmod 0440 /etc/sudoers.d/ubuntu
 
       - name: Run Script
         env:
@@ -37,8 +24,9 @@ jobs:
           ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
           # Set Podman env vars here as the workflow runs in a non-interactive shell
           # so modifying the .bashrc file does not work
-          DOCKER_HOST: unix:///var/run/podman/podman.sock
-          PODMAN_SOCKET_PATH: /var/run/podman/podman.sock
+          DOCKER_HOST: unix://$XDG_RUNTIME_DIR/podman/podman.sock
+          PODMAN_SOCKET_PATH: $XDG_RUNTIME_DIR/podman/podman.sock
+
         run: |
           # Move to home directory
           cp -r $HOME/work/v3-node-setup/v3-node-setup/* $HOME
