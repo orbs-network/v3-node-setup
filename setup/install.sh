@@ -232,6 +232,8 @@ sleep 3 # Wait for management service to start
 mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/management-service/status)
 if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
+    exit 0
 else
     echo -e "${RED}Installation incomplete!${NC}"
+    exit 1
 fi
