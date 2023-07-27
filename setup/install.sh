@@ -32,7 +32,7 @@ fi
 
 # ----- CHECK MINIMUM MACHINE SPECS -----
 
-if [ "$1" != "--skip-req" ]; then
+if [[ ! $* == *--skip-req* ]]; then
     echo -e "${BLUE}Checking machine meets minimum hardware requirements...${NC}"
     # Min specs
     MIN_CPU=4   # in cores
@@ -135,9 +135,7 @@ else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
-# TODO: address warning
-# "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"
-sudo pip install -r $HOME/setup/requirements.txt
+sudo pip install -r $HOME/setup/requirements.txt --root-user-action=ignore
 
 sudo systemctl enable cron
 
@@ -170,42 +168,52 @@ echo "------------------------------------"
 # ----- NODE ADDRESS GENERATION -----
 keys_path=/opt/orbs/keys.json
 
-chmod +x $HOME/setup/generate_wallet.py
+if [[ ! -f $keys_path || $* == *--new-keys* ]]; then
 
-echo -e "${BLUE}* Node address generation *${NC}"
+  chmod +x $HOME/setup/generate_wallet.py
+  echo -e "${BLUE}* Node address generation *${NC}"
+  while true; do
+      read -sp "Press [Enter] to create a new wallet or provide a private key you wish to import: " input
 
-while true; do
-    read -sp "Press [Enter] to create a new wallet or provide a private key you wish to import: " input
+      if [[ -z "$input" ]]; then
+          echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
+          $HOME/setup/generate_wallet.py --path $keys_path --new_key
+          break
+      elif [[ $input =~ ^(0x)?[0-9a-fA-F]{64}$ ]]; then
+          echo -e "${YELLOW}\nThe private key is valid. Importing the wallet...${NC}"
+          $HOME/setup/generate_wallet.py --path $keys_path --import_key $input
+          break
+      else
+          echo -e "${YELLOW}\nInvalid input. A valid private key should be a 64-character hexadecimal string (optionally prefixed with '0x'). Please try again.${NC}"
+      fi
+  done
 
-    if [[ -z "$input" ]]; then
-        echo -e ${YELLOW}"\nYou chose to create a new wallet${NC}"
-        $HOME/setup/generate_wallet.py --path $keys_path --new_key
-        break
-    elif [[ $input =~ ^(0x)?[0-9a-fA-F]{64}$ ]]; then
-        echo -e "${YELLOW}\nThe private key is valid. Importing the wallet...${NC}"
-        $HOME/setup/generate_wallet.py --path $keys_path --import_key $input
-        break
-    else
-        echo -e "${YELLOW}\nInvalid input. A valid private key should be a 64-character hexadecimal string (optionally prefixed with '0x'). Please try again.${NC}"
-    fi
-done
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}Keys were successfully stored under ${keys_path}!${NC}"
+  else
+    echo "${RED}generation of keys failed ${NC}"
+    exit 1
+  fi
 
-if [ $? -eq 0 ]; then
-  echo -e "${GREEN}Keys were successfully stored under ${keys_path}!${NC}"
-else
-  echo "${RED}generation of keys failed ${NC}"
+  echo "------------------------------------"
+
 fi
-
-echo "------------------------------------"
 
 # ----- GENERATE ENV FILES -----
 chmod +x $HOME/setup/generate_env_files.py
-$HOME/setup/generate_env_files.py --keys $keys_path --env_dir "$HOME/deployment" # TODO: deprecate config.json
+env_dir=$HOME/deployment
+public_name=public.env
+private_name=private.env
 
-if [ $? -eq 0 ]; then
-  echo -e "${GREEN}env files were successfully stored under $HOME/deployment${NC}"
-else
-  echo "${RED}generation of env files failed ${NC}"
+if [[ ! -f "$env_dir/$private_name" || $* == *--new-keys* ]]; then
+  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --public $public_name --private $private_name # TODO: deprecate config.json
+
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}env files were successfully stored under $env_dir ${NC}"
+  else
+    echo "${RED}generation of env files failed ${NC}"
+    exit 1
+  fi
 fi
 
 # ----- START MANAGER -----
@@ -236,4 +244,5 @@ if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
 else
     echo -e "${RED}Installation incomplete!${NC}"
+    exit 1
 fi

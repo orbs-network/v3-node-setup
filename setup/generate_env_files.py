@@ -12,7 +12,7 @@ import re
 from dotenv import dotenv_values
 
 
-def generate_env_files(keys_path, env_dir):
+def generate_env_files(keys_path, env_dir, public_env, private_env):
     with open(keys_path) as k:
         keys = json.loads(k.read())
 
@@ -26,13 +26,13 @@ def generate_env_files(keys_path, env_dir):
     public_conf = dotenv_values(os.path.join(env_dir, "public.env"))
     matic_endpoint = public_conf["MATIC_ENDPOINT"]
 
-    with open(os.path.join(env_dir, "public.env"), "a+") as pub:
+    with open(os.path.join(env_dir, public_env), "a+") as pub:
         text = pub.read()
         if not text.endswith("\n"):
             pub.write("\n")
         pub.write(f"NODE_ADDRESS={keys['node-address']}")
 
-    with open(os.path.join(env_dir, "private.env"), "w") as priv:
+    with open(os.path.join(env_dir, private_env), "w") as priv:
         priv.write(f"ETH_ENDPOINT={eth_endpoint}\n")
         priv.write(f"PRIVATE_KEY={keys['node-private-key']}")
 
@@ -47,7 +47,7 @@ def generate_env_files(keys_path, env_dir):
         "node-address": keys["node-address"]
     }
 
-    with open("config.json", 'w') as f:
+    with open("/home/ubuntu/setup/config.json", 'w') as f:
         f.write(json.dumps(config, indent=4))
     print("Successfully stored configuration file in config.json")
     #######################################
@@ -57,6 +57,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--keys')
     parser.add_argument('--env_dir')
+    parser.add_argument('--public')
+    parser.add_argument('--private')
     args = parser.parse_args()
 
-    generate_env_files(args.keys, args.env_dir)
+    generate_env_files(args.keys, args.env_dir, args.public, args.private)
