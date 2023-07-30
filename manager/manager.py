@@ -1,13 +1,13 @@
 import json
 import select
 import subprocess
-import sys
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
 
 errors_file = '/opt/orbs/errors.txt'
 node_version = '/opt/orbs/node-version.json'
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 def run_command(command: str) -> Optional[str]:
     """Runs a shell command and returns the error message (if any).
@@ -48,7 +48,7 @@ def run_command(command: str) -> Optional[str]:
             return None
         
 
-# TODO - add back when we split into seperate repos
+# TODO - add back when we split into separate repos
 # # Fetch all the tags from the remote repository
 # run_command("git fetch origin --tags")
 
