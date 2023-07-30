@@ -47,7 +47,7 @@ def generate_env_files(keys_path, env_dir, public_env, private_env):
         "node-address": keys["node-address"]
     }
 
-    with open("/home/ubuntu/setup/config.json", 'w') as f:
+    with open(os.path.join(os.environ.get("HOME", "/home/ubuntu"), "setup/config.json"), "w") as f:
         f.write(json.dumps(config, indent=4))
     print("Successfully stored configuration file in config.json")
     #######################################
