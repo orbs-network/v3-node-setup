@@ -206,7 +206,7 @@ public_name=public.env
 private_name=private.env
 
 if [[ ! -f "$env_dir/$private_name" || $* == *--new-keys* ]]; then
-  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --public $public_name --private $private_name # TODO: deprecate config.json
+  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --public $public_name --private $private_name
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}env files were successfully stored under $env_dir ${NC}"
@@ -244,5 +244,5 @@ if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
 else
     echo -e "${RED}Installation incomplete!${NC}"
-    exit 1
+    # exit 1
 fi

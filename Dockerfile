@@ -4,7 +4,7 @@ FROM ubuntu:22.10
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Add sudo to make more like EC2 instance
-RUN apt-get update && apt-get install -y software-properties-common python3 python3-pip sudo locales
+RUN apt-get update && apt-get install -y software-properties-common python3 python3-pip sudo locales vim
 
 # EC2 instances usually have locale settings
 RUN locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
