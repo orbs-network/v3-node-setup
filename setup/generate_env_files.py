@@ -38,11 +38,11 @@ def generate_env_files(keys_path, env_dir, public_env, private_env):
         # MANAGEMENT_SERVICE
         f"ETHEREUM_ENDPOINT={eth_endpoint}\n",
         # ETHEREUM_WRITER
-        "MANAGEMENT_SERVICE_ENDPOINT=management-service",
+        "MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/management-service",
         "SIGNER_ENDPOINT=signer",
         "ETHEREUM_ELECTIONS_CONTRACT=0x02Ca9F2c5dD0635516241efD480091870277865b",
         f"NODE_ORBS_ADDRESS={keys['node-address']}",  # TODO: rename this to NODE_ADDRESS
-        "MANAGEMENT_SERVICE_ENDPOINT_SCHEMA=nginx/service/management-service/status"
+        "MANAGEMENT_SERVICE_ENDPOINT_SCHEMA=http://nginx/service/management-service/status",
         # SIGNER
         f"NODE_PRIVATE_KEY={keys['node-private-key']}",
         "HTTP_ADDRESS=:80",
