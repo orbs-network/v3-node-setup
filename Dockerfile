@@ -27,7 +27,7 @@ WORKDIR /home/ubuntu
 RUN echo 'alias dc="docker-compose"' >> ~/.bashrc
 RUN echo 'alias logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs"' >> ~/.bashrc
 RUN echo 'alias n-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs nginx"' >> ~/.bashrc
-RUN echo 'alias m-slogs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs management-service"' >> ~/.bashrc
+RUN echo 'alias ms-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs management-service"' >> ~/.bashrc
 RUN echo 'alias ew-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs ethereum-writer"' >> ~/.bashrc
 RUN echo 'alias s-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs signer"' >> ~/.bashrc
 RUN echo 'alias ms-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec management-service sh"' >> ~/.bashrc

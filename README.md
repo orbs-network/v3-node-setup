@@ -23,6 +23,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 
 - `--skip-req`: Skip minimum machine spec requirement checks
 - `--verbose`: Display detailed logging output
+- `--new-keys`: Reprompt for wallet keys
 
 ### Sanity
 

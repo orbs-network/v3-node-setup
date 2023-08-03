@@ -23,6 +23,7 @@ echo -e "${BLUE}
 current_user=$(whoami)
 
 export DEBIAN_FRONTEND=noninteractive
+export PIP_ROOT_USER_ACTION=ignore
 
 # HANDLE VERBOSE FLAG
 redirect="/dev/null"
@@ -103,6 +104,7 @@ else
     echo 'export PODMAN_SOCKET_PATH=$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
+    rm containernetworking-plugins_1.1.1+ds1-1_amd64.deb
 fi
 
 echo "alias docker=podman" >> ~/.bashrc
@@ -135,7 +137,7 @@ else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
-sudo pip install -r $HOME/setup/requirements.txt --root-user-action=ignore
+sudo pip install -r $HOME/setup/requirements.txt
 
 sudo systemctl enable cron
 
