@@ -24,6 +24,7 @@ USER ubuntu
 WORKDIR /home/ubuntu
 
 # Shortcuts for docker-compose actions
+RUN echo 'alias dc="docker-compose"' >> ~/.bashrc
 RUN echo 'alias logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs"' >> ~/.bashrc
 RUN echo 'alias n-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs nginx"' >> ~/.bashrc
 RUN echo 'alias m-slogs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs management-service"' >> ~/.bashrc

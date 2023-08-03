@@ -67,10 +67,9 @@ services:
     command: "/opt/orbs/orbs-signer"
     volumes:
       - /opt/orbs/signer:/opt/orbs/status
-    env_file:
-      - public.env
-      - private.env
-
+    environment:
+      - NODE_PRIVATE_KEY
+    
   logs:
       container_name: logs
       # TODO: move to Orbs Docker Hub repo
