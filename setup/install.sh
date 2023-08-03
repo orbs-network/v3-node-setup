@@ -202,11 +202,11 @@ fi
 # ----- GENERATE ENV FILES -----
 chmod +x $HOME/setup/generate_env_files.py
 env_dir=$HOME/deployment
-public_name=public.env
-private_name=private.env
+shared_name=public.env
+env_file=.env
 
-if [[ ! -f "$env_dir/$private_name" || $* == *--new-keys* ]]; then
-  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --public $public_name --private $private_name
+if [[ ! -f "$env_dir/$env_file" || $* == *--new-keys* ]]; then
+  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --env_file $env_file --shared $shared_name
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}env files were successfully stored under $env_dir ${NC}"
