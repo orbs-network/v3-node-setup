@@ -35,7 +35,7 @@ services:
       - NODE_PRIVATE_KEY
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
-      - MANAGEMENT_SERVICE_ENDPOINT
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/management-service
   
   matic-reader:
     container_name: matic-reader
