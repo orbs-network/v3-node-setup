@@ -202,7 +202,7 @@ fi
 # ----- GENERATE ENV FILES -----
 chmod +x $HOME/setup/generate_env_files.py
 env_dir=$HOME/deployment
-shared_name=public.env
+shared_name=shared.env
 env_file=.env
 
 if [[ ! -f "$env_dir/$env_file" || $* == *--new-keys* ]]; then
