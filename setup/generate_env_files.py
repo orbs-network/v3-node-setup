@@ -25,6 +25,7 @@ def generate_env_files(keys_path, env_dir, shared_env, env_file):
     conf = dotenv_values(os.path.join(env_dir, shared_env))
     conf["ETHEREUM_ENDPOINT"] = eth_endpoint
     conf["NODE_PRIVATE_KEY"] = keys['node-private-key']
+    conf["NODE_ADDRESS"] = keys['node-address']
 
     with open(os.path.join(env_dir, env_file), "w") as env:
         for k, v in conf.items():
