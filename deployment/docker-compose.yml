@@ -5,13 +5,13 @@ services:
     container_name: nginx
     image: nginx:latest
     ports:
-      - 80:80
-    
+      - 80:80    
     volumes:
       - $HOME/deployment/nginx.conf:/etc/nginx/conf.d/default.conf # How can this be done more generically?
-      - /opt/orbs/management-service:/opt/orbs/management-service
+      - /opt/orbs:/opt/orbs
     depends_on:
       - management-service
+      - logs
 
   management-service:
     container_name: management-service
@@ -19,20 +19,48 @@ services:
     command: "npm start"
     volumes:
       - /opt/orbs/management-service:/opt/orbs/status
-    env_file:      
-      - public.env
-      - private.env
+    environment:
+      - NODE_ADDRESS
+      - ETHEREUM_ENDPOINT 
       
   ethereum-writer:
     container_name: ethereum-writer
-    image: lukerogerson1/ethereum-writer:v1.7.2-main
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-writer:/opt/orbs/status
-    env_file:
-      - public.env
-      - private.env
-    
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x02Ca9F2c5dD0635516241efD480091870277865b
+      - ETHEREUM_ENDPOINT
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT
+  
+  matic-reader:
+    container_name: matic-reader
+    image: lukerogerson1/management-service:v2.7.1-immediate
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-reader:/opt/orbs/status
+    environment:                  
+      - NODE_ADDRESS     
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+
+  matic-writer:
+    container_name: matic-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x94f2da1ef22649c642500e8B1C3252A4670eE95b
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
+
   signer:
     container_name: signer
     image: orbsnetworkstaging/signer:v2.6.0-immediate
