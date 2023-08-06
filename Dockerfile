@@ -4,7 +4,7 @@ FROM ubuntu:22.10
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Add sudo to make more like EC2 instance
-RUN apt-get update && apt-get install -y software-properties-common python3 python3-pip sudo locales
+RUN apt-get update && apt-get install -y software-properties-common python3 python3-pip sudo locales vim
 
 # EC2 instances usually have locale settings
 RUN locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
@@ -22,6 +22,17 @@ RUN useradd -ms /bin/bash ubuntu && \
 USER ubuntu
 
 WORKDIR /home/ubuntu
+
+# Shortcuts for docker-compose actions
+RUN echo 'alias dc="docker-compose"' >> ~/.bashrc
+RUN echo 'alias logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs"' >> ~/.bashrc
+RUN echo 'alias n-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs nginx"' >> ~/.bashrc
+RUN echo 'alias ms-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs management-service"' >> ~/.bashrc
+RUN echo 'alias ew-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs ethereum-writer"' >> ~/.bashrc
+RUN echo 'alias s-logs="docker-compose -f /home/ubuntu/deployment/docker-compose.yml logs signer"' >> ~/.bashrc
+RUN echo 'alias ms-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec management-service sh"' >> ~/.bashrc
+RUN echo 'alias ew-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec ethereum-writer sh"' >> ~/.bashrc
+RUN echo 'alias s-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec signer sh"' >> ~/.bashrc
 
 COPY --chown=ubuntu:ubuntu setup setup
 COPY --chown=ubuntu:ubuntu manager manager

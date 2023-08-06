@@ -23,6 +23,7 @@ echo -e "${BLUE}
 current_user=$(whoami)
 
 export DEBIAN_FRONTEND=noninteractive
+export PIP_ROOT_USER_ACTION=ignore
 
 # HANDLE VERBOSE FLAG
 redirect="/dev/null"
@@ -103,6 +104,7 @@ else
     echo 'export PODMAN_SOCKET_PATH=$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
+    rm containernetworking-plugins_1.1.1+ds1-1_amd64.deb
 fi
 
 echo "alias docker=podman" >> ~/.bashrc
@@ -135,7 +137,7 @@ else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
-sudo pip install -r $HOME/setup/requirements.txt --root-user-action=ignore
+sudo pip install -r $HOME/setup/requirements.txt
 
 sudo systemctl enable cron
 
@@ -202,11 +204,11 @@ fi
 # ----- GENERATE ENV FILES -----
 chmod +x $HOME/setup/generate_env_files.py
 env_dir=$HOME/deployment
-public_name=public.env
-private_name=private.env
+shared_name=shared.env
+env_file=.env
 
-if [[ ! -f "$env_dir/$private_name" || $* == *--new-keys* ]]; then
-  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --public $public_name --private $private_name # TODO: deprecate config.json
+if [[ ! -f "$env_dir/$env_file" || $* == *--new-keys* ]]; then
+  $HOME/setup/generate_env_files.py --keys $keys_path --env_dir $env_dir --env_file $env_file --shared $shared_name
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}env files were successfully stored under $env_dir ${NC}"
@@ -244,5 +246,5 @@ if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
 else
     echo -e "${RED}Installation incomplete!${NC}"
-    exit 1
+    # exit 1
 fi

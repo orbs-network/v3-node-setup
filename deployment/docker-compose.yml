@@ -1,7 +1,6 @@
-version: '3.8'
+version: "3.8"
 
 services:
-
   nginx:
     container_name: nginx
     image: nginx:latest
@@ -9,28 +8,76 @@ services:
       - 80:80
     volumes:
       - $HOME/deployment/nginx.conf:/etc/nginx/conf.d/default.conf # How can this be done more generically?
-      - /opt/orbs/management-service:/opt/orbs/management-service
+      - /opt/orbs:/opt/orbs
     depends_on:
       - management-service
+      - logs
 
   management-service:
     container_name: management-service
-    # Uncomment to use amd64 image
-    # image: orbsnetworkstaging/management-service:v2.5.1-a4db0333
-    image: orbsnetworkstaging/management-service:v2.5.1-m1
-    command: "npm start -- --config /opt/orbs/config.json"
+    image: lukerogerson1/management-service:v2.7.1-immediate
+    command: "npm start"
     volumes:
-      # TEMP: should take values from node.env
-      - $HOME/setup/config.json:/opt/orbs/config.json
       - /opt/orbs/management-service:/opt/orbs/status
-    env_file:
-      - public.env
-      - private.env
+    environment:
+      - NODE_ADDRESS
+      - ETHEREUM_ENDPOINT
+
+  ethereum-writer:
+    container_name: ethereum-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - /opt/orbs/ethereum-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x02Ca9F2c5dD0635516241efD480091870277865b
+      - ETHEREUM_ENDPOINT
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/management-service
+
+  matic-reader:
+    container_name: matic-reader
+    image: orbsnetworkstaging/management-service:v2.7.1-immediate
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-reader:/opt/orbs/status
+    environment:
+      - NODE_ADDRESS
+      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77 
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - ETHEREUM_FIRST_BLOCK=21700000
+      - ETHEREUM_POLL_INTERVAL_SECONDS=300
+
+  matic-writer:
+    container_name: matic-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x94f2da1ef22649c642500e8B1C3252A4670eE95b
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=nginx/service/matic-reader
+      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1      
+
+  signer:
+    container_name: signer
+    image: orbsnetworkstaging/signer:v2.6.0-immediate
+    command: "/opt/orbs/orbs-signer"
+    volumes:
+      - /opt/orbs/signer:/opt/orbs/status
+    environment:
+      - NODE_PRIVATE_KEY
+      - NODE_ADDRESS
 
   logs:
-      container_name: logs
-      # TODO: move to Orbs Docker Hub repo
-      image: lukerogerson1/v3-logging:0.0.1
-      volumes:
-        - $PODMAN_SOCKET_PATH:/var/run/docker.sock
-
+    container_name: logs
+    # TODO: move to Orbs Docker Hub repo
+    image: lukerogerson1/v3-logging:0.0.1
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
