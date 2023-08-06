@@ -63,6 +63,7 @@ services:
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
       - MANAGEMENT_SERVICE_ENDPOINT=nginx/service/matic-reader
+      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1      
 
   signer:
     container_name: signer
