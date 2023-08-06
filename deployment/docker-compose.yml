@@ -39,13 +39,15 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: lukerogerson1/management-service:v2.7.1-immediate
+    image: orbsnetworkstaging/management-service:v2.7.1-immediate
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
     environment:
       - NODE_ADDRESS
+      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77 
       - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+
 
   matic-writer:
     container_name: matic-writer
@@ -59,7 +61,7 @@ services:
       - NODE_PRIVATE_KEY
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
-      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
+      - MANAGEMENT_SERVICE_ENDPOINT=nginx/service/matic-reader
 
   signer:
     container_name: signer
