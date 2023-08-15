@@ -62,18 +62,19 @@ services:
       - NODE_PRIVATE_KEY
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
-      - MANAGEMENT_SERVICE_ENDPOINT=nginx/service/matic-reader
-      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1      
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
+      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1
 
   signer:
     container_name: signer
-    image: orbsnetworkstaging/signer:v2.6.0-immediate
+    image: orbsnetworkstaging/signer:v2.6.1-immediate
     command: "/opt/orbs/orbs-signer"
     volumes:
       - /opt/orbs/signer:/opt/orbs/status
     environment:
       - NODE_PRIVATE_KEY
       - NODE_ADDRESS
+      - HTTP_ADDRESS=:80
 
   logs:
     container_name: logs
