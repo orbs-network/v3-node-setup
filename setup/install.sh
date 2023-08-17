@@ -20,7 +20,12 @@ echo -e "${BLUE}
        ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
                                        ${NC}"
 
-current_user=$(whoami)
+username="guardian"
+sudo useradd -m username
+su - username
+
+# Prevent system from killing user's processes on logout
+loginctl enable-linger $username
 
 export DEBIAN_FRONTEND=noninteractive
 export PIP_ROOT_USER_ACTION=ignore
@@ -68,7 +73,7 @@ if [[ ! $* == *--skip-req* ]]; then
 fi # end reqs
 
 sudo mkdir -p /opt/orbs
-sudo chown -R $current_user:$current_user /opt/orbs/
+sudo chown -R $username:$username /opt/orbs/
 sudo chmod -R 755 /opt/orbs/
 
 #  ----- INSTALL DEPENDENCIES -----
