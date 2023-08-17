@@ -21,8 +21,11 @@ echo -e "${BLUE}
                                        ${NC}"
 
 username="guardian"
-sudo useradd -m username
-su - username
+sudo useradd -m $username
+sudo passwd -d $username
+su - $username
+# TODO: move the rest to a new script and run
+# sudo -u $username bash /path/to/your/script.sh
 
 # Prevent system from killing user's processes on logout
 loginctl enable-linger $username
