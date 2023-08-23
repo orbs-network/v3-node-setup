@@ -1,34 +1,66 @@
-name: build-and-test
+# name: build-and-test
 
-on:
-  push:
-    branches-ignore:
-      - "*"
+# on:
+#   push:
+#     branches-ignore:
+#       - "*"
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-22.04
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v3
+
+#       # - name: Install Dependencies and Configure Environment
+#       #   run: |
+#       #     sudo useradd -ms /bin/bash ubuntu
+#       #     sudo sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu'
+#       #     sudo chmod 0440 /etc/sudoers.d/ubuntu
+
+#       - name: Run Script
+#         env:
+#           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+#           ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
+#           # Set Podman env vars here as the workflow runs in a non-interactive shell
+#           # so modifying the .bashrc file does not work
+#           DOCKER_HOST: unix://$XDG_RUNTIME_DIR/podman/podman.sock
+#           PODMAN_SOCKET_PATH: $XDG_RUNTIME_DIR/podman/podman.sock
+
+#         run: |
+#           # Move to home directory
+#           cp -r $HOME/work/v3-node-setup/v3-node-setup/* $HOME
+#           chmod +x ./setup/install.sh
+#           ./setup/install.sh --skip-req
+
+name: Docker-in-Docker workflow
+
+on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      # - name: Install Dependencies and Configure Environment
-      #   run: |
-      #     sudo useradd -ms /bin/bash ubuntu
-      #     sudo sh -c 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu'
-      #     sudo chmod 0440 /etc/sudoers.d/ubuntu
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
 
-      - name: Run Script
-        env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
-          # Set Podman env vars here as the workflow runs in a non-interactive shell
-          # so modifying the .bashrc file does not work
-          DOCKER_HOST: unix://$XDG_RUNTIME_DIR/podman/podman.sock
-          PODMAN_SOCKET_PATH: $XDG_RUNTIME_DIR/podman/podman.sock
-
+      - name: Run Docker-in-Docker
         run: |
-          # Move to home directory
-          cp -r $HOME/work/v3-node-setup/v3-node-setup/* $HOME
-          chmod +x ./setup/install.sh
-          ./setup/install.sh --skip-req
+          # Start docker daemon in the background
+          sudo service docker start
+
+          # Wait for the daemon to be up and running
+          sleep 5
+
+          echo "Building Docker image"
+          docker build -t test-ubuntu .
+          docker run -p 80:80 --rm -it --privileged test-ubuntu
+
+      - name: Clean up Docker
+        if: always()
+        run: sudo service docker stop
