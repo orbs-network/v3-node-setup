@@ -105,6 +105,34 @@ else
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
     rm containernetworking-plugins_1.1.1+ds1-1_amd64.deb
+
+    # INSTALL NODE EXPORTER
+    cd $HOME
+    NODE_EXPORTER_VERSION="0.18.1"
+    curl -L https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz -o node_exporter.tar.gz
+    tar xvfz node_exporter.tar.gz && mv node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter .
+    chmod +x node_exporter
+    rm -f node_exporter.tar.gz
+
+    cat <<EOF | sudo tee /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Node Exporter
+
+[Service]
+User=$(whoami)
+ExecStart=$HOME/node_exporter --collector.tcpstat
+Restart=always
+StandardOutput=file:/var/log/node_exporter.log
+StandardError=file:/var/log/node_exporter.err.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    # Reload systemd, enable and start the service
+    sudo systemctl daemon-reload
+    sudo systemctl enable node_exporter
+    sudo systemctl start node_exporter
+
 fi
 
 echo "alias docker=podman" >> ~/.bashrc
