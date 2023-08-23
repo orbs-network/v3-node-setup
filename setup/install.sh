@@ -79,7 +79,7 @@ if [ -f /etc/needrestart/needrestart.conf ]; then
 fi
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
 echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
-sudo apt-get install -qq -y software-properties-common podman curl git cron > "$redirect" 2>&1
+sudo apt-get install -qq -y software-properties-common podman curl git cron jq > "$redirect" 2>&1
 echo -e "${BLUE}$(podman --version)${NC}"
 # https://docs.docker.com/compose/install/standalone/
 sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
@@ -229,6 +229,29 @@ if [[ ! -f $keys_path || $* == *--new-keys* ]]; then
 
 fi
 
+
+# ----- GUARDIAN INFO ---------------
+
+while true; do
+    read -rp "Please enter your Guardian name: " name
+    if [[ -n "$name" ]]; then
+        break
+    fi
+done
+
+while true; do
+    read -rp "Please enter Guardian website: " website
+    if [[ -n "$website" ]]; then
+        break
+    fi
+done
+
+myip="$(curl ifconfig.me)"
+
+public_add=$(jq '."node-address"' $keys_path)
+
+echo "------------------------------------"
+
 # ----- GENERATE ENV FILES -----
 chmod +x $HOME/setup/generate_env_files.py
 env_dir=$HOME/deployment
@@ -272,6 +295,7 @@ sleep 3 # Wait for management service to start
 mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/management-service/status)
 if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
+    echo "Please register your Guardian using the following website https://guardians.orbs.network?name=$name&website=$website&ip=$myip&node_address=$public_add" # TODO: only show once - during first installation
 else
     echo -e "${RED}Installation incomplete!${NC}"
     # exit 1
