@@ -1,15 +1,6 @@
 #!/bin/bash
 
-# TODO
-# - Finalise minimum machine specs
-# - Double check cron job gets persisted between reboots
-
-# Color variables
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+source $HOME/setup/scripts/base.sh
 
 echo -e "${BLUE}
       ██████╗ ██████╗ ██████╗ ███████╗
@@ -20,9 +11,19 @@ echo -e "${BLUE}
        ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
                                        ${NC}"
 
-username=$(whoami)
-
-# Prevent system from killing user's processes on logout
-loginctl enable-linger $username
-
-bash -E $HOME/setup/scripts/main.sh "$@"
+# Check minimum machine specs are met
+source $HOME/setup/scripts/validate-min-specs.sh "$@"
+# Install necessary dependencies
+source $HOME/setup/scripts/install-dependencies.sh "$@"
+# Download required node repositories
+source $HOME/setup/scripts/clone-repos.sh "$@"
+# Generate node address keys
+source $HOME/setup/scripts/handle-node-address.sh "$@"
+# Collect Guardian details
+source $HOME/setup/scripts/handle-guardian-info.sh "$@"
+# Generate env files needed for manager
+source $HOME/setup/scripts/generate-env-files.sh "$@"
+# Setup manager
+source $HOME/setup/scripts/setup-manager.sh "$@"
+# Perform final health check
+source $HOME/setup/scripts/health-check.sh "$@"
