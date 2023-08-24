@@ -25,10 +25,25 @@ jobs:
       - name: Build Docker image
         run: docker build -t test-ubuntu .
 
-      - name: Run smoke test
+      - name: Start container
         env:
           ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
-        run: docker run -p 80:80 -e ETH_ENDPOINT=$ETH_ENDPOINT --rm --privileged test-ubuntu /bin/bash -c "source ./setup/install.sh --skip-req"
+        run: |
+          docker run -d -p 80:80 -e ETH_ENDPOINT=$ETH_ENDPOINT --privileged --name smoke_test test-ubuntu tail -f /dev/null
+
+      - name: Run install script
+        run: |
+          docker exec smoke_test /bin/bash -c "source ./setup/install.sh --skip-req"
+
+      - name: Check management service is running properly
+        run: |
+          curl -f http://localhost/service/management-service/status
+
+      - name: Cleanup container
+        if: always()
+        run: |
+          docker stop smoke_test
+          docker rm smoke_test
 
       - name: Clean up Docker
         if: always()
