@@ -1,0 +1,35 @@
+name: smoke-test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Start Docker-in-Docker
+        run: |
+          sudo service docker start
+          sleep 5
+
+      - name: Build Docker image
+        run: docker build -t test-ubuntu .
+
+      - name: Run smoke test
+        env:
+          ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
+        run: docker run -p 80:80 -e ETH_ENDPOINT=$ETH_ENDPOINT --rm --privileged test-ubuntu /bin/bash -c "source ./setup/install.sh --skip-req"
+
+      - name: Clean up Docker
+        if: always()
+        run: sudo service docker stop

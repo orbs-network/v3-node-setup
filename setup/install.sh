@@ -92,8 +92,8 @@ if [ -f /.dockerenv ]; then
     mkdir -p ~/.local/run/podman
     # Start Podman service as current user, not root
     podman system service -t 0 unix://$HOME/.local/run/podman/podman.sock &> /dev/null &
-    echo 'export DOCKER_HOST=unix://'$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
-    echo 'export PODMAN_SOCKET_PATH='$HOME'/.local/run/podman/podman.sock' >> ~/.bashrc
+    export DOCKER_HOST=unix:///home/ubuntu/.local/run/podman/podman.sock
+    export PODMAN_SOCKET_PATH=/home/ubuntu/.local/run/podman/podman.sock
 else
     echo -e "${YELLOW}Not running in Docker container${NC}"
     # https://bugs.launchpad.net/ubuntu/+source/libpod/+bug/2024394/comments/4
@@ -232,19 +232,24 @@ fi
 
 # ----- GUARDIAN INFO ---------------
 
-while true; do
-    read -rp "Please enter your Guardian name: " name
-    if [[ -n "$name" ]]; then
-        break
-    fi
-done
+if [ -f /.dockerenv ]; then
+    name="test"
+    website="test.com"
+else
+    while true; do
+        read -rp "Please enter your Guardian name: " name
+        if [[ -n "$name" ]]; then
+            break
+        fi
+    done
 
-while true; do
-    read -rp "Please enter Guardian website: " website
-    if [[ -n "$website" ]]; then
-        break
-    fi
-done
+    while true; do
+        read -rp "Please enter Guardian website: " website
+        if [[ -n "$website" ]]; then
+            break
+        fi
+    done
+fi
 
 myip="$(curl ifconfig.me)"
 
@@ -291,12 +296,13 @@ echo "------------------------------------"
 
 # ----- SANITY CHECK -----
 echo -e "${BLUE}Performing a health check...${NC}"
-sleep 3 # Wait for management service to start
+sleep 10 # Wait for management service to start
 mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/management-service/status)
 if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
     echo "Please register your Guardian using the following website https://guardians.orbs.network?name=$name&website=$website&ip=$myip&node_address=$public_add" # TODO: only show once - during first installation
+    exit 0
 else
     echo -e "${RED}Installation incomplete!${NC}"
-    # exit 1
+    exit 1
 fi

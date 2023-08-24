@@ -17,7 +17,7 @@ def generate_env_files(keys_path, env_dir, shared_env, env_file):
 
     while True:
         print("Please enter a valid http(s) RPC provider URL for Ethereum (e.g. Infura URL)")
-        eth_endpoint = input()
+        eth_endpoint = os.environ.get('ETH_ENDPOINT') or input()
         if re.match(r"https?://.*?\..*?/.*", eth_endpoint):
             break
         print("Invalid URL input. Please try again.")
