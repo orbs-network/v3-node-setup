@@ -2,6 +2,8 @@
 
 **⚠️ WIP ⚠️**
 
+[![smoke-test](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml)
+
 ## What's this?
 
 This repo is temporarily being used to hold all the Orbs v3 node validator install, manager and deployment files. In the future, they will be split into different repos
