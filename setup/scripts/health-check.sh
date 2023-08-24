@@ -9,8 +9,6 @@ if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
     echo "------------------------------------"
     echo -e "\n👉👉👉 ${YELLOW}Please register your Guardian using the following website: https://guardians.orbs.network?name=$name&website=$website&ip=$myip&node_address=$public_add ${NC} 👈👈👈\n" # TODO: only show once - during first installation
-    exit 0
 else
     echo -e "${RED}Installation incomplete!${NC}"
-    exit 1
 fi
