@@ -2,6 +2,8 @@
 
 **⚠️ WIP ⚠️**
 
+[![smoke-test](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml)
+
 ## What's this?
 
 This repo is temporarily being used to hold all the Orbs v3 node validator install, manager and deployment files. In the future, they will be split into different repos
@@ -15,9 +17,16 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 
 ## Developing
 
+### Running interactively
+
 1. `docker build -t test-ubuntu .`
 2. `docker run -p 80:80 --rm -it --privileged test-ubuntu`
 3. `source ./setup/install.sh`
+
+### Running non-interactively
+
+1. `docker build -t test-ubuntu .`
+2. `docker run -p 80:80 -e ETH_ENDPOINT=YOUR-INFURA-ENDPOINT --rm --privileged test-ubuntu /bin/bash -c "source ./setup/install.sh"` (this will immediately exit the container after completion)
 
 ### Install flags for dev
 
