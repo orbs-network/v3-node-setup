@@ -7,7 +7,7 @@ services:
     ports:
       - 80:80
     volumes:
-      - $HOME/deployment/nginx.conf:/etc/nginx/conf.d/default.conf # How can this be done more generically?
+      - $HOME/deployment/nginx/conf.d:/etc/nginx/conf.d
       - /opt/orbs:/opt/orbs
     depends_on:
       - management-service
