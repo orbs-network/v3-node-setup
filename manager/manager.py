@@ -1,15 +1,34 @@
+import os
 import json
 import select
 import subprocess
 from datetime import datetime
 from typing import Optional
 
-errors_file = '/opt/orbs/errors.txt'
-node_version = '/opt/orbs/node-version.json'
+os.makedirs("/opt/orbs/manager", exist_ok=True)
+errors_file = "/opt/orbs/manager/errors.txt"
+status_file = "/opt/orbs/manager/status.json"
+log_file = "/opt/orbs/manager/log.txt"
+
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def append_line_to(file_name, line):
+    print(line)
+    timestamp = datetime.now().isoformat()
+
+    # Check if file exists, if not create it
+    if not os.path.isfile(file_name):
+        with open(file_name, "w") as file:
+            file.write(f"{timestamp}: {line}\n")
+    else:
+        # File exists, append line to it
+        with open(file_name, "a") as file:
+            file.write(f"{timestamp}: {line}\n")
+
+
 def run_command(command: str) -> Optional[str]:
+    append_line_to(log_file, "manager started")
     """Runs a shell command and returns the error message (if any).
 
     Args:
@@ -18,7 +37,13 @@ def run_command(command: str) -> Optional[str]:
     Returns:
         The error message (if any).
     """
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    process = subprocess.Popen(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
 
     while True:
         # Use select for non-blocking I/O on both stdout and stderr
@@ -32,21 +57,21 @@ def run_command(command: str) -> Optional[str]:
 
         # Check for termination
         if process.poll() is not None:
-            # Process has finished, read rest of the output 
+            append_line_to(log_file, "poll for process for stdout")
+            # Process has finished, read rest of the output
             for output in [process.stdout, process.stderr]:
                 for line in output.readlines():
                     line = line.strip()
                     if line:
-                        print(line)
+                        append_line_to(log_file, line)
 
             if process.returncode != 0:
-                with open(errors_file, "a") as f:
-                    error_message = f"Command '{command}' returned non-zero exit status {process.returncode}"
-                    f.write(f"{timestamp} - {error_message}\n")
+                error_message = f"Command '{command}' returned non-zero exit status {process.returncode}"
+                append_line_to(errors_file, error_message)
                 return error_message
-            
+
             return None
-        
+
 
 # TODO - add back when we split into separate repos
 # # Fetch all the tags from the remote repository
@@ -58,8 +83,21 @@ def run_command(command: str) -> Optional[str]:
 latest_tag = "0.0.1"
 
 # Load the existing data from the JSON file
-with open(node_version, "r") as f:
-    data = json.load(f)
+try:
+    with open(status_file, "r") as f:
+        data = json.load(f)
+except:
+    # create default data if doesnt exist
+    first_status = """
+    {
+        "lastUpdated": "0000-00-00 00:00:00",
+        "currentVersion": "0.0.1",
+        "scheduledVersion": null,
+        "updateScheduled": false,
+        "updateScheduledFor": null
+    }
+    """
+    data = json.loads(first_status)
 
 # Update the fields in the JSON file
 data["lastUpdated"] = timestamp
@@ -70,9 +108,9 @@ if latest_tag and latest_tag != data["currentVersion"]:
     error = run_command("docker-compose -f $HOME/deployment/docker-compose.yml up -d")
     if error:
         print("Error running docker-compose")
-    
+
     data["currentVersion"] = latest_tag
 
 # Write the updated data back to the JSON file
-with open(node_version, "w") as f:
+with open(status_file, "w") as f:
     json.dump(data, f, indent=4)  # Use indent=4 for pretty-printing
