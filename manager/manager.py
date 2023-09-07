@@ -5,10 +5,10 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
-os.makedirs("/opt/orbs/manager", exist_ok=True)
-errors_file = "/opt/orbs/manager/errors.txt"
-status_file = "/opt/orbs/manager/status.json"
-log_file = "/opt/orbs/manager/log.txt"
+os.makedirs("~/opt/orbs/manager", exist_ok=True)
+errors_file = "~/opt/orbs/manager/errors.txt"
+status_file = "~/opt/orbs/manager/status.json"
+log_file = "~/opt/orbs/manager/log.txt"
 
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -32,7 +32,7 @@ append_line_to(log_file, "manager.py triggered")
 
 
 def run_command(command: str) -> Optional[str]:
-    append_line_to(log_file, "manager started")
+    append_line_to(log_file, "run_command", str)
     """Runs a shell command and returns the error message (if any).
 
     Args:
@@ -95,7 +95,7 @@ except:
     first_status = """
     {
         "lastUpdated": "0000-00-00 00:00:00",
-        "currentVersion": "0.0.1",
+        "currentVersion": "0.0.0",
         "scheduledVersion": null,
         "updateScheduled": false,
         "updateScheduledFor": null
