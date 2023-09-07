@@ -27,6 +27,10 @@ def append_line_to(file_name, line):
             file.write(f"{timestamp}: {line}\n")
 
 
+# write log
+append_line_to(log_file, "manager.py triggered")
+
+
 def run_command(command: str) -> Optional[str]:
     append_line_to(log_file, "manager started")
     """Runs a shell command and returns the error message (if any).
