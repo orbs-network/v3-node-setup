@@ -5,10 +5,11 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
-os.makedirs("~/opt/orbs/manager", exist_ok=True)
-errors_file = "~/opt/orbs/manager/errors.txt"
-status_file = "~/opt/orbs/manager/status.json"
-log_file = "~/opt/orbs/manager/log.txt"
+base_dir = "/opt/orbs"
+os.makedirs(f"{base_dir}/manager", exist_ok=True)
+errors_file = f"{base_dir}/manager/errors.txt"
+status_file = f"{base_dir}/manager/status.json"
+log_file = f"{base_dir}/manager/log.txt"
 
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -33,7 +34,7 @@ append_line_to(log_file, "manager.py triggered")
 
 def run_command(command: str) -> Optional[str]:
     append_line_to(log_file, "run_command:")
-    append_line_to(log_file, str)
+    append_line_to(log_file, command)
 
     """Runs a shell command and returns the error message (if any).
 
