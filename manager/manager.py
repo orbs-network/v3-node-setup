@@ -32,7 +32,9 @@ append_line_to(log_file, "manager.py triggered")
 
 
 def run_command(command: str) -> Optional[str]:
-    append_line_to(log_file, "run_command", str)
+    append_line_to(log_file, "run_command:")
+    append_line_to(log_file, str)
+
     """Runs a shell command and returns the error message (if any).
 
     Args:
