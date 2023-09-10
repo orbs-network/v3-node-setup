@@ -1,5 +1,6 @@
 config.json
 
 *venv
-node_modules
+node_modules/
+ignore
 uv.sh

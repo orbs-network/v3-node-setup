@@ -4,8 +4,9 @@ import select
 import subprocess
 from datetime import datetime
 from typing import Optional
+from status import Status
 
-base_dir = "/opt/orbs"
+base_dir = "./ignore/opt/orbs"
 os.makedirs(f"{base_dir}/manager", exist_ok=True)
 errors_file = f"{base_dir}/manager/errors.txt"
 status_file = f"{base_dir}/manager/status.json"
@@ -13,7 +14,18 @@ log_file = f"{base_dir}/manager/log.txt"
 
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+# status object
+status = Status()
 
+data = {
+    "currentVersion": "0.0.0",
+    "scheduledVersion": None,
+    "updateScheduled": None,
+    "updateScheduledFor": None,
+}
+
+
+# logger
 def append_line_to(file_name, line):
     print(line)
     timestamp = datetime.now().isoformat()
@@ -84,31 +96,17 @@ def run_command(command: str) -> Optional[str]:
 # # Fetch all the tags from the remote repository
 # run_command("git fetch origin --tags")
 
-# # Get the latest tag
-# latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
+# Get the latest tag
+latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
+
+# updated data & metrics
+status.update()
+
+# hard coded for now
 latest_tag = "0.0.1"
 
-# Load the existing data from the JSON file
-try:
-    with open(status_file, "r") as f:
-        data = json.load(f)
-except:
-    # create default data if doesnt exist
-    first_status = """
-    {
-        "lastUpdated": "0000-00-00 00:00:00",
-        "currentVersion": "0.0.0",
-        "scheduledVersion": null,
-        "updateScheduled": false,
-        "updateScheduledFor": null
-    }
-    """
-    data = json.loads(first_status)
-
-# Update the fields in the JSON file
-data["lastUpdated"] = timestamp
-
+# upddate manager info
 if latest_tag and latest_tag != data["currentVersion"]:
     # checkout_command = f"git checkout {latest_tag}"
     # run_command(checkout_command)  # checkout the latest tag
@@ -118,6 +116,8 @@ if latest_tag and latest_tag != data["currentVersion"]:
 
     data["currentVersion"] = latest_tag
 
-# Write the updated data back to the JSON file
+
 with open(status_file, "w") as f:
-    json.dump(data, f, indent=4)  # Use indent=4 for pretty-printing
+    obj = status.get()
+    obj["Payload"]["Manager"] = data
+    json.dump(obj, f, indent=4)  # Use indent=4 for pretty-printing
