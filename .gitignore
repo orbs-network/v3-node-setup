@@ -2,5 +2,6 @@ config.json
 
 *venv
 node_modules/
+__pycache__/
 ignore
 uv.sh
