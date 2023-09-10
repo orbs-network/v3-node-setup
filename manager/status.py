@@ -1,4 +1,3 @@
-import json
 import psutil
 import docker
 from datetime import datetime
