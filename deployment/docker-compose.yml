@@ -10,7 +10,7 @@ services:
       - $HOME/deployment/nginx/conf.d:/etc/nginx/conf.d
       - /opt/orbs:/opt/orbs
     depends_on:
-      - logs
+      - logger
 
   ethereum-reader:
     container_name: ethereum-reader
