@@ -38,7 +38,7 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: orbsnetworkstaging/ethereum-reader:v2.7.1-immediate
+    image: orbsnetworkstaging/management-service:v2.7.1-immediate
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
