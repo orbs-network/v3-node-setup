@@ -77,8 +77,8 @@ services:
     healthcheck:
       test: [ "CMD", "/opt/orbs/healthcheck", "--url", "http://localhost:80", "--output", "/opt/orbs/status/status.json" ]
 
-  logs:
-    container_name: logs
+  logger:
+    container_name: logger
     # TODO: move to Orbs Docker Hub repo
     image: lukerogerson1/v3-logging:0.0.1
     volumes:
