@@ -52,3 +52,9 @@ From Mac host, run `curl http://localhost/service/ethereum-reader/status`
 
 - **status**: http://localhost/service/ethereum-reader/status
 - **logs**: http://localhost/service/ethereum-reader/logs
+
+### Troubleshooting
+
+#### Healthcheck always shows "starting"
+
+[Podman uses systemd timers to run healtchecks periodically](https://github.com/containers/podman/issues/19326), which do not work in our dev Docker-in-Docker setup. As a workaround, you can run the command [`podman healthcheck run SERVICE`](https://docs.podman.io/en/v4.4/markdown/podman-healthcheck-run.1.html) to manually run a specific container healthcheck.
