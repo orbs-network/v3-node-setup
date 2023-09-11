@@ -20,7 +20,15 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 ### Running interactively
 
 1. `docker build -t test-ubuntu .`
-2. `docker run -p 80:80 --rm -it --privileged test-ubuntu`
+2. ```
+      docker run \
+         -v $(pwd)/deployment:/home/ubuntu/deployment \
+         -v $(pwd)/logging:/home/ubuntu/logging \
+         -v $(pwd)/manager:/home/ubuntu/manager \
+         -v $(pwd)/setup:/home/ubuntu/setup \
+         -p 80:80 --rm -it --privileged test-ubuntu
+   ```
+   (Use volumes to allow us to make changes outside the container)
 3. `source ./setup/install.sh`
 
 ### Running non-interactively
