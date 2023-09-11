@@ -100,8 +100,7 @@ class Status:
         client = docker.from_env()
         for container in client.containers.list():
             container_attrs = container.attrs
-            # print(container_attrs)
-            print("---------------------------------------------------")
+
             image = container_attrs.get("Image")
             if image is None:
                 image = "(None)"
@@ -126,6 +125,7 @@ class Status:
                 "ExitCode": container_attrs["State"]["ExitCode"],
                 "Error": container_attrs["State"]["Error"],
             }
+
             self.payload["Metrics"]["docker-services"].append(docker_service_data)
 
     def get(self):
