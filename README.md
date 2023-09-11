@@ -36,11 +36,11 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
 
 ### Sanity
 
-From Mac host, run `curl http://localhost/service/management-service/status`
+From Mac host, run `curl http://localhost/service/ethereum-reader/status`
 
 ### Exposed URLs
 
 #### Management service
 
-- **status**: http://localhost/service/management-service/status
-- **logs**: http://localhost/service/management-service/logs
+- **status**: http://localhost/service/ethereum-reader/status
+- **logs**: http://localhost/service/ethereum-reader/logs

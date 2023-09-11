@@ -10,15 +10,14 @@ services:
       - $HOME/deployment/nginx/conf.d:/etc/nginx/conf.d
       - /opt/orbs:/opt/orbs
     depends_on:
-      - management-service
       - logs
 
-  management-service:
-    container_name: management-service
+  ethereum-reader:
+    container_name: ethereum-reader
     image: lukerogerson1/management-service:v2.7.1-immediate
     command: "npm start"
     volumes:
-      - /opt/orbs/management-service:/opt/orbs/status
+      - /opt/orbs/ethereum-reader:/opt/orbs/status
     environment:
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
@@ -35,11 +34,11 @@ services:
       - NODE_PRIVATE_KEY
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
-      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/management-service
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/ethereum-reader
 
   matic-reader:
     container_name: matic-reader
-    image: orbsnetworkstaging/management-service:v2.7.1-immediate
+    image: orbsnetworkstaging/ethereum-reader:v2.7.1-immediate
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
