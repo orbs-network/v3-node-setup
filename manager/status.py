@@ -72,37 +72,48 @@ class Status:
 
     def add_processes(self):
         for proc in psutil.process_iter(["pid", "name", "cmdline", "memory_info"]):
-            MemoryUsedMBytes = ""
-            # Convert from bytes to MBytes
-            if proc.info["memory_info"] is not None:
-                MemoryUsedMBytes = round(proc.info["memory_info"].rss / 1024 / 1024, 6)
+            if proc.ppid() == 1:  # Only include parent processes
+                # print(json.dumps(proc.info, indent=4))
+                MemoryUsedMBytes = ""
+                # Convert from bytes to MBytes
+                if proc.info["memory_info"] is not None:
+                    MemoryUsedMBytes = round(
+                        proc.info["memory_info"].rss / 1024 / 1024, 6
+                    )
 
-            # cmd line
-            cmdLine = ""
-            if proc.info["cmdline"] is not None:
-                cmdLine = " ".join(proc.info["cmdline"])
-                cmdLine = (cmdLine[:75] + "...") if len(cmdLine) > 75 else cmdLine
-            process_data = {
-                "Name": proc.info["name"],
-                "Command": cmdLine,
-                "MemoryUsedMbytes": MemoryUsedMBytes,
-                "PID": proc.info["pid"],
-                "ParentPID": proc.ppid(),  # Get parent PID
-            }
-            self.payload["Metrics"]["Processes"].append(process_data)
+                # cmd line
+                cmdLine = ""
+                if proc.info["cmdline"] is not None:
+                    cmdLine = " ".join(proc.info["cmdline"])
+                    cmdLine = (cmdLine[:75] + "...") if len(cmdLine) > 75 else cmdLine
+
+                process_data = {
+                    "Name": proc.info["name"],
+                    "Command": cmdLine,
+                    "MemoryUsedMbytes": MemoryUsedMBytes,
+                    "PID": proc.info["pid"],
+                    "ParentPID": proc.ppid(),  # Get parent PID
+                }
+                self.payload["Metrics"]["Processes"].append(process_data)
 
     def add_docker_services(self):
         client = docker.from_env()
         for container in client.containers.list():
             container_attrs = container.attrs
+            # print(container_attrs)
+            print("---------------------------------------------------")
+            image = container_attrs.get("Image")
+            if image is None:
+                image = "(None)"
             docker_service_data = {
                 "Name": container.name,
-                "Image": container.image.tags[0] if container.image.tags else "",
-                "Command": " ".join(container.attrs["Config"]["Cmd"]),
-                "Environment": {
-                    item.split("=")[0]: item.split("=")[1]
-                    for item in container.attrs["Config"]["Env"]
-                },
+                "Image": image,
+                # "Command": " ".join(container.attrs["Config"]["Cmd"]),
+                # "Environment": {
+                #    item.split("=")[0]: item.split("=")[1]
+                #    for item in container.attrs["Config"]["Env"]
+                #        if "key" or "ETHEREUM_ENDPOINT" is not in item.lower()
+                # },
                 "CreatedAt": container_attrs["Created"],
                 "ExitedAt": container_attrs["State"]["FinishedAt"],
                 "Status": container_attrs["State"]["Status"],
@@ -115,7 +126,10 @@ class Status:
                 "ExitCode": container_attrs["State"]["ExitCode"],
                 "Error": container_attrs["State"]["Error"],
             }
+
             self.payload["Metrics"]["docker-services"].append(docker_service_data)
+            print(json.dumps(container_attrs, indent=4))
+            # self.payload["Metrics"]["docker-services"].append(container_attrs)
 
     def get(self):
         usedMB = round(self.payload["Metrics"]["MemoryUsedMBytes"])
@@ -128,9 +142,3 @@ class Status:
             "Error": self.error,
             "Payload": self.payload,
         }
-
-
-# Usage
-# status = Status()
-# status.update()
-# print(status.to_json())
