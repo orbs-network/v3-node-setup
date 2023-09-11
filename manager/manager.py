@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 from status import Status
 
-base_dir = "./ignore/opt/orbs"
+base_dir = "/opt/orbs"
 os.makedirs(f"{base_dir}/manager", exist_ok=True)
 errors_file = f"{base_dir}/manager/errors.txt"
 status_file = f"{base_dir}/manager/status.json"
