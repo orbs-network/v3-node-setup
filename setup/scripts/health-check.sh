@@ -4,7 +4,7 @@ echo -e "${BLUE}Performing a health check...${NC}\n"
 
 sleep 10 # Wait for management service to start
 
-mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/management-service/status)
+mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/ethereum-reader/status)
 if [ $mgmt_svs_status_code -eq 200 ]; then
     echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
     echo "------------------------------------"

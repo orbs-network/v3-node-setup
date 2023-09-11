@@ -35,9 +35,13 @@ jobs:
         run: |
           docker exec smoke_test /bin/bash -c "source ./setup/install.sh --skip-req"
 
-      - name: Check management service is running properly
+      - name: Check ethereum-reader and manager are running properly both in legacy and v4 names
         run: |
           curl -f http://localhost/service/management-service/status
+          curl -f http://localhost/service/ethereum-reader/status
+          curl -f http://localhost/service/manager/status
+          curl -f http://localhost/service/boyar/status
+          
 
       - name: Cleanup container
         if: always()
