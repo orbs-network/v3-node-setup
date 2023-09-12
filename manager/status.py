@@ -100,7 +100,6 @@ class Status:
         client = docker.from_env()
         for container in client.containers.list():
             container_attrs = container.attrs
-
             image = container_attrs.get("Image")
             if image is None:
                 image = "(None)"
