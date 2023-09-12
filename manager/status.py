@@ -126,10 +126,7 @@ class Status:
                 "ExitCode": container_attrs["State"]["ExitCode"],
                 "Error": container_attrs["State"]["Error"],
             }
-
             self.payload["Metrics"]["docker-services"].append(docker_service_data)
-            print(json.dumps(container_attrs, indent=4))
-            # self.payload["Metrics"]["docker-services"].append(container_attrs)
 
     def get(self):
         usedMB = round(self.payload["Metrics"]["MemoryUsedMBytes"])
