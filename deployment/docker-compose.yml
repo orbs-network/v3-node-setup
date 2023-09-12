@@ -11,6 +11,8 @@ services:
       - /opt/orbs:/opt/orbs
     depends_on:
       - logger
+    healthcheck:
+      test: service nginx status || exit 1
 
   ethereum-reader:
     container_name: ethereum-reader
@@ -21,6 +23,8 @@ services:
     environment:
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
+    healthcheck:
+      test: node healthcheck.js || exit 1
 
   ethereum-writer:
     container_name: ethereum-writer
@@ -35,6 +39,8 @@ services:
       - SIGNER_ENDPOINT
       - NODE_ADDRESS
       - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/ethereum-reader
+    healthcheck:
+      test: node healthcheck.js || exit 1
 
   matic-reader:
     container_name: matic-reader
@@ -44,10 +50,12 @@ services:
       - /opt/orbs/matic-reader:/opt/orbs/status
     environment:
       - NODE_ADDRESS
-      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77 
+      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
       - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
       - ETHEREUM_FIRST_BLOCK=21700000
       - ETHEREUM_POLL_INTERVAL_SECONDS=300
+    healthcheck:
+      test: node healthcheck.js || exit 1
 
   matic-writer:
     container_name: matic-writer
@@ -63,6 +71,8 @@ services:
       - NODE_ADDRESS
       - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
       - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1
+    healthcheck:
+      test: node healthcheck.js || exit 1
 
   signer:
     container_name: signer
@@ -75,7 +85,7 @@ services:
       - NODE_ADDRESS
       - HTTP_ADDRESS=:80
     healthcheck:
-      test: [ "CMD", "/opt/orbs/healthcheck", "--url", "http://localhost:80", "--output", "/opt/orbs/status/status.json" ]
+      test: "/opt/orbs/healthcheck --url http://localhost:80 --output /opt/orbs/status/status.json"
 
   logger:
     container_name: logger
@@ -83,3 +93,6 @@ services:
     image: lukerogerson1/v3-logging:0.0.1
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+    healthcheck:
+      # TODO: improve this healthcheck
+      test: ping -c 1 logger || exit 1
