@@ -73,7 +73,6 @@ class Status:
     def add_processes(self):
         for proc in psutil.process_iter(["pid", "name", "cmdline", "memory_info"]):
             if proc.ppid() == 1:  # Only include parent processes
-                # print(json.dumps(proc.info, indent=4))
                 MemoryUsedMBytes = ""
                 # Convert from bytes to MBytes
                 if proc.info["memory_info"] is not None:
@@ -106,6 +105,7 @@ class Status:
             docker_service_data = {
                 "Name": container.name,
                 "Image": image,
+                # exposes sensitive info!!!
                 # "Command": " ".join(container.attrs["Config"]["Cmd"]),
                 # "Environment": {
                 #    item.split("=")[0]: item.split("=")[1]
