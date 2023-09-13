@@ -100,8 +100,6 @@ class Status:
         client = docker.from_env()
         for container in client.containers.list():
             container_attrs = container.attrs
-            # print(container_attrs)
-            print("---------------------------------------------------")
             image = container_attrs.get("Image")
             if image is None:
                 image = "(None)"
@@ -128,8 +126,6 @@ class Status:
             }
 
             self.payload["Metrics"]["docker-services"].append(docker_service_data)
-            print(json.dumps(container_attrs, indent=4))
-            # self.payload["Metrics"]["docker-services"].append(container_attrs)
 
     def get(self):
         usedMB = round(self.payload["Metrics"]["MemoryUsedMBytes"])
