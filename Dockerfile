@@ -1,6 +1,6 @@
 # This creates a temp image simulating an Ubuntu EC2 to test the installer script
 
-FROM ubuntu:22.10
+FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Add sudo to make more like EC2 instance
