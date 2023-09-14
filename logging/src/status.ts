@@ -1,95 +1,43 @@
-import {pruneTailLists} from './tail';
-import {RotationState, State, Tailer} from './model/state';
 import * as fs from 'fs';
-import {writeFileSync} from 'fs';
-import {exec} from 'child-process-promise';
-import {ensureFileDirectoryExists, getCurrentClockTime, JsonResponse} from './helpers';
-import {Configuration} from './config';
+import {dirname} from "path";
 
-async function getOpenFilesCount() {
-    const result = await exec('lsof -l | wc -l');
-    return parseInt(result.stdout);
-}
-
-function renderTailProcessDesc(t: Tailer) {
-    return {
-        processId: t.childProcess.pid,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        status: `exit code: ${(t.childProcess as any).exitCode} signal: ${(t.childProcess as any).signalCode}`,
-        start: t.start ? t.start.toISOString() : 'NA',
-        end: t.end ? t.end.toISOString() : 'NA',
-        url: t.url,
-        headers: t.requestHeaders,
-        bytesRead: t.bytesRead,
-    };
-}
-
-function renderServices(services: { [p: string]: RotationState })  {
-    const result : {[p: string]: {}} = {};
-    for (const serviceName in services) {
-        result[serviceName] = {
-            'urls': {
-                'manifest': `/logs/${serviceName}`,
-                'tail': `/logs/${serviceName}/tail`,
-            },
-            ...services[serviceName]
-        };
+export async function generateStatusObj(serviceLaunchTime: number, err?: string) {
+    const status: any = {}
+    if (err) {
+        status['Status'] = 'Error';
+        status['Error'] = err;
     }
-    return result;
-}
-
-export async function generateStatusObj(err?: Error) {
-    // include error field if found errors
-    const errorText = getErrorText(state, config, err);
-    const status: JsonResponse = {
-        Status: errorText ? 'Error' : 'OK',
-        Error: errorText,
+    else {
+        status['Status'] = 'OK';
+    }
+    Object.assign({
         Timestamp: new Date().toISOString(),
         Payload: {
-            Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
+            Uptime: Math.round(new Date().getTime() / 1000) - serviceLaunchTime,
             MemoryBytesUsed: process.memoryUsage().heapUsed,
             Version: {
-                Semantic: state.CurrentVersion,
+                Semantic: getCurrentVersion(),
             },
-            OpenFiles,
-            Config: config,
-            Services: renderServices(state.Services),
-            TailsActive: state.ActiveTails.map(renderTailProcessDesc),
-            TailsTerm: state.TerminatedTails.map(renderTailProcessDesc),
         },
-    };
-
+    }, status);
     return status;
 }
 
-export async function writeStatusToDisk(filePath: string, state: State, config: Configuration, err?: Error) {
-    const status = await generateStatusObj(state, config, err);
+export async function writeStatusToDisk(filePath: string, serviceLaunchTime: number, err?: string) {
+    const status = await generateStatusObj(serviceLaunchTime, err);
 
-    // do the actual writing to local file
-    ensureFileDirectoryExists(filePath);
+    fs.mkdirSync(dirname(filePath), { recursive: true });
     const content = JSON.stringify(status, null, 2);
-    writeFileSync(filePath, content);
+    fs.writeFileSync(filePath, content);
 
-    // log progress
     console.log(`Wrote status JSON to ${filePath} (${content.length} bytes).`);
 }
 
-// helpers
-
-function getErrorText(state: State, config: Configuration, err?: Error) {
-    const res = [];
-
-    if (state.ServiceLaunchTime === 0) {
-        // TODO replace with a meaning full inspection of the state
-        res.push('Invalid launch time');
+export function getCurrentVersion() { // TODO: need to update .version file during CI/CD
+    try {
+        return fs.readFileSync('./version').toString().trim();
+    } catch (err) {
+        console.error(`Could not find version: ${err.message}`);
     }
-
-    if (!fs.existsSync(config.LogsPath)) {
-        res.push('Disk access error');
-    }
-
-    if (err) {
-        res.push(`Error: ${err.message}.`);
-    }
-    return res.length ? res.join(',') : undefined;
+    return '';
 }
