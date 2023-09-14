@@ -5,3 +5,6 @@ node_modules/
 __pycache__/
 ignore
 uv.sh
+
+.env
+log.txt
