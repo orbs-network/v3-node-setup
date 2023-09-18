@@ -97,7 +97,7 @@ def run_command(command: str) -> Optional[str]:
 # run_command("git fetch origin --tags")
 
 # Get the latest tag
-latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
+# latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
 
 # updated data & metrics

@@ -1,13 +1,24 @@
 #!/bin/bash
 
-echo -e "${BLUE}Installing dependencies...${NC}"
+echo -e "${BLUE}Installing dependencies. Please be patient as this may take several minutes (particularly on first run)...${NC}"
+
+UBUNTU_VERSION='22.04'
 
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 if [ -f /etc/needrestart/needrestart.conf ]; then
   sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf # disables the restart modal
 fi
 sudo apt-get update -qq && sudo apt-get -y upgrade -qq > "$redirect" 2>&1
-echo -e "${YELLOW}This may take a few minutes. Please wait...${NC}"
+echo -e "${YELLOW}Getting there! Please wait...${NC}"
+
+# Needed to install Podman v4 (https://devicetests.com/install-podman-4-ubuntu-22-04)
+sudo apt-get install -qq -y curl > "$redirect" 2>&1
+key_url="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_${UBUNTU_VERSION}/Release.key"
+sources_url="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_${UBUNTU_VERSION}"
+echo "deb $sources_url/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list > "$redirect" 2>&1
+curl -fsSL $key_url | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_unstable.gpg > /dev/null
+sudo apt update -qq
+
 sudo apt-get install -qq -y software-properties-common podman curl git cron jq > "$redirect" 2>&1
 echo -e "${BLUE}$(podman --version)${NC}"
 # https://docs.docker.com/compose/install/standalone/
@@ -25,15 +36,11 @@ if [ -f /.dockerenv ]; then
     export PODMAN_SOCKET_PATH=/home/ubuntu/.local/run/podman/podman.sock
 else
     echo -e "${YELLOW}Not running in Docker container${NC}"
-    # https://bugs.launchpad.net/ubuntu/+source/libpod/+bug/2024394/comments/4
-    curl -O http://archive.ubuntu.com/ubuntu/pool/universe/g/golang-github-containernetworking-plugins/containernetworking-plugins_1.1.1+ds1-1_amd64.deb
-    sudo dpkg -i containernetworking-plugins_1.1.1+ds1-1_amd64.deb
     systemctl --user start podman.socket
     echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     echo 'export PODMAN_SOCKET_PATH=$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc
     echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
     sudo sysctl -p
-    rm containernetworking-plugins_1.1.1+ds1-1_amd64.deb
 
     # INSTALL NODE EXPORTER
     cd $HOME
