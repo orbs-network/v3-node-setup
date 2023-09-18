@@ -5,12 +5,16 @@ import {writeStatusToDisk} from "./status";
 const app: Express = express();
 const port: number = 80;
 
-const serviceLaunchTime = Date.now();
+const serviceLaunchTime = Math.round(new Date().getTime() / 1000);
 const statusFilePath = process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
 
 let error = '';
 
-setInterval( function() { writeStatusToDisk(statusFilePath, serviceLaunchTime, error); }, 5*60*1000 );
+setInterval(function status() { // setInterval that also run immediately
+  writeStatusToDisk(statusFilePath, serviceLaunchTime, error);
+  error = '';
+  return status;
+}(), 5 * 60 * 1000);
 
 // TODO: This can happen at the nginx level
 const validNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -36,7 +40,7 @@ const decodeDockerLogs = (data: Buffer): string => {
   return str;
 };
 
-app.get("/service/:name/logs", (req: Request, res: Response) => {
+app.get("/service/:name/log", (req: Request, res: Response) => {
   const containerName: string = req.params.name;
 
   if (!validNameRegex.test(containerName)) {
@@ -61,7 +65,7 @@ app.get("/service/:name/logs", (req: Request, res: Response) => {
           error = "Service not found";
           res.status(404).send(error);
         } else if (resp.statusCode !== 200) {
-          error = resp;
+          error = String(resp.statusMessage);
           console.error("500 error: ", resp);
           res.status(500).send("An internal error occurred. Try again later");
         } else {

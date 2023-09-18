@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import {dirname} from "path";
 
-export async function generateStatusObj(serviceLaunchTime: number, err?: string) {
-    const status: any = {}
+export function generateStatusObj(serviceLaunchTime: number, err?: string) {
+    let status: any = {}
     if (err) {
         status['Status'] = 'Error';
         status['Error'] = err;
@@ -10,7 +10,7 @@ export async function generateStatusObj(serviceLaunchTime: number, err?: string)
     else {
         status['Status'] = 'OK';
     }
-    Object.assign({
+    status = Object.assign({
         Timestamp: new Date().toISOString(),
         Payload: {
             Uptime: Math.round(new Date().getTime() / 1000) - serviceLaunchTime,
@@ -23,8 +23,8 @@ export async function generateStatusObj(serviceLaunchTime: number, err?: string)
     return status;
 }
 
-export async function writeStatusToDisk(filePath: string, serviceLaunchTime: number, err?: string) {
-    const status = await generateStatusObj(serviceLaunchTime, err);
+export function writeStatusToDisk(filePath: string, serviceLaunchTime: number, err?: string) {
+    const status = generateStatusObj(serviceLaunchTime, err);
 
     fs.mkdirSync(dirname(filePath), { recursive: true });
     const content = JSON.stringify(status, null, 2);
@@ -33,10 +33,10 @@ export async function writeStatusToDisk(filePath: string, serviceLaunchTime: num
     console.log(`Wrote status JSON to ${filePath} (${content.length} bytes).`);
 }
 
-export function getCurrentVersion() { // TODO: need to update .version file during CI/CD
+export function getCurrentVersion() {
     try {
-        return fs.readFileSync('./version').toString().trim();
-    } catch (err) {
+        return fs.readFileSync('/app/.version').toString().trim();
+    } catch (err: any) {
         console.error(`Could not find version: ${err.message}`);
     }
     return '';

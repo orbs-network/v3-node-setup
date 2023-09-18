@@ -13,5 +13,7 @@ FROM node:18-alpine AS release
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=dependencies /app/node_modules ./node_modules
+COPY .version ./.version
+
 EXPOSE 80
 CMD ["node", "./dist/main.js"]

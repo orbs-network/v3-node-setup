@@ -89,8 +89,7 @@ services:
 
   logger:
     container_name: logger
-    # TODO: move to Orbs Docker Hub repo
-    image: lukerogerson1/v3-logging:0.0.1
+    image: orbsnetworkstaging/v4-logger:v0.0.1
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/logger:/opt/orbs/status
