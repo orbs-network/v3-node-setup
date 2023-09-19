@@ -8,7 +8,7 @@ echo -e "${BLUE}Performing a health check...${NC}\n"
 while [ "$(docker-compose -f $COMPOSE_FILE ps | awk '/_/{if($3 ~ "Up") print "Up"}')" != "Up" ]
 do
   echo "Waiting for services to start..."
-  docker ps -a
+  docker-compose -f $COMPOSE_FILE ps
   sleep 5
 done
 
