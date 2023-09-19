@@ -21,6 +21,7 @@ check_services() {
 }
 
 if check_services; then
+  sleep 10
   mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/ethereum-reader/status)
   if [ $mgmt_svs_status_code -eq 200 ]; then
       echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
