@@ -41,7 +41,7 @@ jobs:
           curl -f http://localhost/service/ethereum-reader/status
           curl -f http://localhost/service/manager/status
           curl -f http://localhost/service/boyar/status
-          
+          curl -f http://localhost/service/manager/status
 
       - name: Cleanup container
         if: always()

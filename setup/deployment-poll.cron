@@ -1,1 +1,1 @@
-* * * * * cd $HOME/deployment && python3 $HOME/manager/manager.py
+* * * * * cd $HOME/deployment && python3 $HOME/manager/src/manager.py
