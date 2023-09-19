@@ -1,9 +1,11 @@
 #!/bin/bash
 
+COMPOSE_FILE="$HOME/deployment/docker-compose.yml"
+
 echo -e "${BLUE}Performing a health check...${NC}\n"
 
 # Wait for services to be up
-while [ "$(docker-compose ps | awk '/_/{if($3 ~ "Up") print "Up"}')" != "Up" ]
+while [ "$(docker-compose -f $COMPOSE_FILE ps | awk '/_/{if($3 ~ "Up") print "Up"}')" != "Up" ]
 do
   echo "Waiting for services to start..."
   sleep 5
