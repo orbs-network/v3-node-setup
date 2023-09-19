@@ -1,20 +1,25 @@
 import express, { Express, NextFunction, Request, Response } from "express";
 import { request, ClientRequest, RequestOptions, IncomingMessage } from "http";
-import {writeStatusToDisk} from "./status";
+import { writeStatusToDisk } from "./status";
 
 const app: Express = express();
 const port: number = 80;
 
 const serviceLaunchTime = Math.round(new Date().getTime() / 1000);
-const statusFilePath = process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
+const statusFilePath =
+  process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
 
-let error = '';
+let error = "";
 
-setInterval(function status() { // setInterval that also run immediately
-  writeStatusToDisk(statusFilePath, serviceLaunchTime, error);
-  error = '';
-  return status;
-}(), 5 * 60 * 1000);
+setInterval(
+  (function status() {
+    // setInterval that also run immediately
+    writeStatusToDisk(statusFilePath, serviceLaunchTime, error);
+    error = "";
+    return status;
+  })(),
+  5 * 60 * 1000
+);
 
 // TODO: This can happen at the nginx level
 const validNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -55,32 +60,32 @@ app.get("/service/:name/log", (req: Request, res: Response) => {
   };
 
   const clientRequest: ClientRequest = request(
-      options,
-      (resp: IncomingMessage) => {
-        if (resp.statusCode === 404) {
-          // TODO: add proper logger
-          console.log(
-              `User ${req.ip} requested logs for non-existent service ${containerName}`
-          );
-          error = "Service not found";
-          res.status(404).send(error);
-        } else if (resp.statusCode !== 200) {
-          error = String(resp.statusMessage);
-          console.error("500 error: ", resp);
-          res.status(500).send("An internal error occurred. Try again later");
-        } else {
-          console.log("BACK TO SQUARE THREE!!!");
-          let data = "";
-          // Log will be max 10MB due to log rotation
-          resp.on("data", (chunk: Buffer) => {
-            const logs = decodeDockerLogs(chunk);
-            data += logs;
-          });
-          resp.on("end", () => {
-            res.send(data);
-          });
-        }
+    options,
+    (resp: IncomingMessage) => {
+      if (resp.statusCode === 404) {
+        // TODO: add proper logger
+        console.log(
+          `User ${req.ip} requested logs for non-existent service ${containerName}`
+        );
+        error = "Service not found";
+        res.status(404).send(error);
+      } else if (resp.statusCode !== 200) {
+        error = String(resp.statusMessage);
+        console.error("500 error: ", resp);
+        res.status(500).send("An internal error occurred. Try again later");
+      } else {
+        console.log("BACK TO SQUARE THREE!!!");
+        let data = "";
+        // Log will be max 10MB due to log rotation
+        resp.on("data", (chunk: Buffer) => {
+          const logs = decodeDockerLogs(chunk);
+          data += logs;
+        });
+        resp.on("end", () => {
+          res.send(data);
+        });
       }
+    }
   );
 
   clientRequest.on("error", (e: Error) => {
