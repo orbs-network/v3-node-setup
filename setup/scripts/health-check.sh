@@ -2,7 +2,12 @@
 
 echo -e "${BLUE}Performing a health check...${NC}\n"
 
-sleep 10 # Wait for management service to start
+# Wait for services to be up
+while [ "$(docker-compose ps | awk '/_/{if($3 ~ "Up") print "Up"}')" != "Up" ]
+do
+  echo "Waiting for services to start..."
+  sleep 5
+done
 
 mgmt_svs_status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/service/ethereum-reader/status)
 if [ $mgmt_svs_status_code -eq 200 ]; then
