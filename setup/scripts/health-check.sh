@@ -18,6 +18,15 @@ do
   else
     echo "Waiting for services to start..."
     podman ps -a
+    echo "------------------------------------"
+    podman logs logger
+    podman inspect logger
+    echo "------------------------------------"
+    podman logs nginx
+    podman inspect nginx
+    echo "------------------------------------"
+    podman logs ethereum-writer
+    podman inspect ethereum-writer
     sleep 5
   fi
 done
