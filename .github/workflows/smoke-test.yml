@@ -35,13 +35,29 @@ jobs:
         run: |
           docker exec smoke_test /bin/bash -c "source ./setup/install.sh --skip-req"
 
-      - name: Check ethereum-reader and manager are running properly both in legacy and v4 names
+      - name: Check ethereum-reader's status is being served using legacy name (management-service)
         run: |
           curl -f http://localhost/service/management-service/status
+
+      - name: Check ethereum-reader's status is being served using v4 name
+        run: |
           curl -f http://localhost/service/ethereum-reader/status
-          curl -f http://localhost/service/manager/status
+
+      - name: Check manager's status is being served using legacy name (boyar)
+        run: |
           curl -f http://localhost/service/boyar/status
+
+      - name: Check manager's status is being served using v4 name
+        run: |
           curl -f http://localhost/service/manager/status
+
+      - name: Check logger's status is being served using legacy name (logs-service)
+        run: |
+          curl -f http://localhost/service/logs-service/status
+
+      - name: Check logger's status is being served using v4 name
+        run: |
+          curl -f http://localhost/service/logger/status
 
       - name: Cleanup container
         if: always()

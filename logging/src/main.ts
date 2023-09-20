@@ -1,8 +1,25 @@
 import express, { Express, NextFunction, Request, Response } from "express";
 import { request, ClientRequest, RequestOptions, IncomingMessage } from "http";
+import { writeStatusToDisk } from "./status";
 
 const app: Express = express();
 const port: number = 80;
+
+const serviceLaunchTime = Math.round(new Date().getTime() / 1000);
+const statusFilePath =
+  process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
+
+let error = "";
+
+setInterval(
+  (function status() {
+    // setInterval that also run immediately
+    writeStatusToDisk(statusFilePath, serviceLaunchTime, error);
+    error = "";
+    return status;
+  })(),
+  5 * 60 * 1000
+);
 
 // TODO: This can happen at the nginx level
 const validNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -28,11 +45,12 @@ const decodeDockerLogs = (data: Buffer): string => {
   return str;
 };
 
-app.get("/service/:name/logs", (req: Request, res: Response) => {
+app.get("/service/:name/log", (req: Request, res: Response) => {
   const containerName: string = req.params.name;
 
   if (!validNameRegex.test(containerName)) {
-    return res.status(400).send("Invalid container name");
+    error = "Invalid container name";
+    return res.status(400).send(error);
   }
 
   const options: RequestOptions = {
@@ -49,8 +67,10 @@ app.get("/service/:name/logs", (req: Request, res: Response) => {
         console.log(
           `User ${req.ip} requested logs for non-existent service ${containerName}`
         );
-        res.status(404).send("Service not found");
+        error = "Service not found";
+        res.status(404).send(error);
       } else if (resp.statusCode !== 200) {
+        error = String(resp.statusMessage);
         console.error("500 error: ", resp);
         res.status(500).send("An internal error occurred. Try again later");
       } else {
@@ -69,6 +89,7 @@ app.get("/service/:name/logs", (req: Request, res: Response) => {
   );
 
   clientRequest.on("error", (e: Error) => {
+    error = e.message;
     console.error("onError: ", e);
     res.status(500).send("An unexpected error occurred. Try again later");
   });
