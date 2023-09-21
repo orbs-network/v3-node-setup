@@ -7,6 +7,9 @@ source $HOME/manager/.venv/bin/activate
 
 cp $HOME/setup/node-version.json /opt/orbs
 
+# Append environment variables to /etc/environment, which is taken into effect by cron
+env | sudo tee -a /etc/environment
+
 python3 $HOME/manager/src/manager.py
 
 echo -e "${GREEN}Manager started!${NC}"
