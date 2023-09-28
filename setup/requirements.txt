@@ -1,6 +1,5 @@
-pysha3==1.0.2
+pycryptodome==3.19.0
 coincurve==18.0.0
 watchdog==2.3.1
-eth-keys==0.4.0
 eth-utils==2.2.0
 python-dotenv==1.0.0
