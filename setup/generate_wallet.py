@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 import argparse
 import json
+import hashlib
 from secrets import token_bytes
 
 from coincurve import PublicKey
-from eth_keys import keys
 from eth_utils import to_checksum_address
-from sha3 import keccak_256
 
 
 def store_keys(dest_path, addr, private_key):
@@ -20,9 +19,9 @@ def store_keys(dest_path, addr, private_key):
 
 def generate_keys(dest_path):
     # https://github.com/pcaversaccio/ethereum-key-generation-python
-    private_key = keccak_256(token_bytes(32)).digest()
+    private_key = hashlib.sha3_256(token_bytes(32)).digest()
     public_key = PublicKey.from_valid_secret(private_key).format(compressed=False)[1:]
-    addr = keccak_256(public_key).digest()[-20:].hex()
+    addr = hashlib.sha3_256(public_key).digest()[-20:].hex()
 
     store_keys(dest_path, to_checksum_address(addr), private_key.hex())
 
@@ -32,8 +31,10 @@ def import_key(dest_path, private_key):
     if isinstance(private_key, str):
         private_key = bytes.fromhex(private_key[2:] if private_key.startswith('0x') else private_key)
 
-    private_key = keys.PrivateKey(private_key)
-    store_keys(dest_path, private_key.public_key.to_checksum_address(), str(private_key))
+    public_key = PublicKey.from_valid_secret(private_key).format(compressed=False)[1:]
+    addr = hashlib.sha3_256(public_key).digest()[-20:].hex()
+
+    store_keys(dest_path, to_checksum_address(addr), private_key.hex())
 
 
 if __name__ == "__main__":
