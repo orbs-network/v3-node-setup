@@ -1,8 +1,8 @@
-# v4-node-setup repo
+# v3-node-setup repo
 
 **⚠️ WIP ⚠️**
 
-[![smoke-test](https://github.com/orbs-network/v4-node-setup/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/orbs-network/v4-node-setup/actions/workflows/smoke-test.yml)
+[![smoke-test](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml)
 
 ## What's this?
 
