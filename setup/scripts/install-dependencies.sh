@@ -4,6 +4,12 @@ echo -e "${BLUE}Installing dependencies. Please be patient as this may take seve
 
 UBUNTU_VERSION='22.04'
 
+# Need to explicitly add docker.io registry
+echo "[registries.search]" | sudo tee /etc/containers/registries.conf
+echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
+echo "[registries.insecure]" | sudo tee -a /etc/containers/registries.conf
+echo "registries = ['host.docker.internal:6000']" | sudo tee -a /etc/containers/registries.conf
+
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 if [ -f /etc/needrestart/needrestart.conf ]; then
   sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf # disables the restart modal
@@ -22,7 +28,11 @@ sudo apt update -qq
 sudo apt-get install -qq -y software-properties-common podman curl git cron jq > "$redirect" 2>&1
 echo -e "${BLUE}$(podman --version)${NC}"
 # https://docs.docker.com/compose/install/standalone/
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+if [ "$(arch)" == "x86_64" ]; then
+  sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+else
+  sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-linux-aarch64 -o /usr/local/bin/docker-compose
+fi
 sudo chmod +x /usr/local/bin/docker-compose
 echo -e "${BLUE}$(docker-compose --version)${NC}"
 
@@ -71,6 +81,9 @@ EOF
 
 fi
 
+# Create custom network for containers to be able to address to DNS 172.20.0.1 in nginx as a resolver.
+podman network create --subnet 172.20.0.0/16 custom_network
+
 echo "alias docker=podman" >> ~/.bashrc
 source ~/.bashrc
 
@@ -113,9 +126,5 @@ cd $HOME/manager && poetry install && cd $HOME
 
 sudo systemctl enable cron
 
-# Need to explicitly add docker.io registry
-echo "[registries.search]" | sudo tee /etc/containers/registries.conf
-echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
-
-echo -e "${GREEN}Finished installing dependencies!${NC}"
+#echo -e "${GREEN}Finished installing dependencies!${NC}"
 echo "------------------------------------"

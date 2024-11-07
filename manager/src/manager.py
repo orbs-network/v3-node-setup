@@ -5,7 +5,9 @@ import docker
 from config import status_file
 from logger import logger
 from system_monitor import SystemMonitor
+import updater
 from utils import run_command
+from os import getenv
 
 system_monitor = SystemMonitor(client=docker.from_env())
 
@@ -29,6 +31,8 @@ def main():
     # Get the latest tag
     # latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
+    updater.compare()
+
     # hard coded for now
     latest_tag = "0.0.1"
 
@@ -36,8 +40,10 @@ def main():
     if latest_tag and latest_tag != data["currentVersion"]:
         # checkout_command = f"git checkout {latest_tag}"
         # run_command(checkout_command)  # checkout the latest tag
+        docker_compose_file = getenv('DOCKER_COMPOSE_FILE')
+
         error = run_command(
-            "docker-compose -f $HOME/deployment/docker-compose.yml up -d"
+            f"docker-compose -f {docker_compose_file} up -d"
         )
         if error:
             print("Error running docker-compose")

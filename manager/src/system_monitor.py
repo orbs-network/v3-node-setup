@@ -182,10 +182,14 @@ class SystemMonitor:
             if image is None:
                 image = "(None)"
 
+            cmdConf = ""
+            if container.attrs["Config"]["Cmd"] is not None:
+                cmdConf = " ".join(container.attrs["Config"]["Cmd"])
+
             service_data = {
                 "Name": container.name,
                 "Image": image,
-                "Command": " ".join(container.attrs["Config"]["Cmd"]),
+                "Command": cmdConf,
                 "Environment": self.__get_filtered_env_vars(
                     container.attrs["Config"]["Env"]
                 ),

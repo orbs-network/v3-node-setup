@@ -23,7 +23,14 @@ source $HOME/setup/scripts/handle-node-address.sh "$@"
 source $HOME/setup/scripts/handle-guardian-info.sh "$@"
 # Generate env files needed for manager
 source $HOME/setup/scripts/generate-env-files.sh "$@"
+
+set -a  # Automatically export all variables
+source $HOME/deployment/.env
+set +a
+
 # Setup manager
 source $HOME/setup/scripts/setup-manager.sh "$@"
 # Perform final health check
 source $HOME/setup/scripts/health-check.sh "$@"
+
+

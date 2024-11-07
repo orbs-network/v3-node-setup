@@ -21,6 +21,8 @@ services:
     volumes:
       - /opt/orbs/ethereum-reader:/opt/orbs/status
     environment:
+      - DOCKER_COMPOSE_DESCRIPTOR_URL
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
     healthcheck:
@@ -49,6 +51,7 @@ services:
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
     environment:
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
       - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
       - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}

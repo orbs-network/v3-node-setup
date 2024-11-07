@@ -1,1 +1,1 @@
-* * * * * cd $HOME/deployment && python3 $HOME/manager/src/manager.py
+* * * * * cd $HOME/deployment && $HOME/manager/.venv/bin/python3 $HOME/manager/src/manager.py >> /tmp/manager.out 2>&1

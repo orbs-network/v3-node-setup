@@ -1,0 +1,174 @@
+import hashlib
+import os
+import re
+from datetime import datetime, timedelta
+
+import requests
+import yaml
+
+from logger import logger
+
+
+# ---- UPDATE-DESCRIPTOR-BEGIN ----
+# targetNodes:
+#   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: *
+# updateResolution: 1440
+# updateMode: immediate , scheduled
+# updateInAction: false
+# commit: 64816f4876aa1483ba79ee5e9b061985ccd2b6b1
+# ---- UPDATE-DESCRIPTOR-END ----
+
+def fetch_remote_descriptor ():
+    url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
+
+    try:
+        logger.info(f"Fetching remote descriptor from {url}")
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP errors
+        data = response.text
+    except requests.exceptions.RequestException as e:
+        logger.error(f"An error occurred while fetching the file: {e}")
+        data = None
+
+    return data
+
+def fetch_and_parse_metadata():
+    try:
+        logger.info("Fetching and parsing metadata...")
+        content = fetch_remote_descriptor()
+
+        # Extract the metadata section
+        descriptor_begin = "# ---- UPDATE-DESCRIPTOR-BEGIN ----"
+        descriptor_end = "# ---- UPDATE-DESCRIPTOR-END ----"
+
+        # Find the metadata section between begin and end markers
+        metadata_match = re.search(
+            rf"{re.escape(descriptor_begin)}(.*?){re.escape(descriptor_end)}",
+            content,
+            re.DOTALL
+        )
+
+        if not metadata_match:
+            raise ValueError("Descriptor section not found in file")
+
+        # Extract metadata content and strip the comments
+        metadata_content = metadata_match.group(1)
+        metadata_content = re.sub(r"^\s*#\s*", "", metadata_content, flags=re.MULTILINE).strip()
+
+        # Parse as YAML and return
+        metadata_dict = yaml.safe_load(metadata_content)
+        return metadata_dict
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while fetching the file: {e}")
+        return None
+    except ValueError as e:
+        print(f"Error: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+# def get_current_git_tag ():
+#     try:
+#         logger.info("Fetching current git tag...")
+#         tag = os.popen("git describe --tags $(git rev-list --tags --max-count=1)").read().strip()
+#         return tag
+#     except Exception as e:
+#         logger.error(f"An error occurred while fetching the current git tag: {e}")
+#         return None
+
+def get_current_git_commit_hash ():
+    try:
+        logger.info("Fetching current git commit hash...")
+        commit_hash = os.popen("git rev-parse HEAD").read().strip()
+        return commit_hash
+    except Exception as e:
+        logger.error(f"An error occurred while fetching the current git commit hash: {e}")
+        return None
+
+def get_guardian_node_id ():
+    return os.getenv('NODE_ADDRESS', None)
+
+def get_my_update_schedule_window_time (spread_minutes):
+    hash_value = get_guardian_node_id()
+    hash_int = int(hashlib.sha256(hash_value.encode()).hexdigest(), 16)
+    minute_of_day = hash_int % spread_minutes
+    today = datetime.now().replace(second=0, microsecond=0)
+    target_time = today + timedelta(minutes=minute_of_day)
+
+    return target_time
+
+
+def compare ():
+    logger.info("Comparing current state with metadata")
+
+    metadata = fetch_and_parse_metadata()
+    guardian_node_id = get_guardian_node_id()
+
+    if guardian_node_id is None:
+        logger.error("Guardian node ID not found")
+        return
+
+    # Check if I'm in the target list in any way.
+    target_nodes = metadata.get('targetNodes', [])
+    am_i_a_target = False
+    for node in target_nodes:
+        if node.get('id') == guardian_node_id or node.get('id') == '*':
+            am_i_a_target = True
+            break
+
+    logger.info(f"Am I a target node? {am_i_a_target}")
+
+    if not am_i_a_target:
+        return
+
+    # Check if the update is in action
+    update_in_action = metadata.get('updateInAction', False)
+
+    if not update_in_action:
+        logger.info("Update is NOT in action, skipping")
+        return
+
+    # Check if I need to update myself.
+
+    updateMode = metadata.get('updateMode', 'immediate')
+
+    if updateMode == 'scheduled':
+        logger.info("Scheduled update mode")
+        updateResolution = metadata.get('updateResolution', 1440)
+        logger.info(f"Update resolution: {updateResolution} minutes")
+        timeToUpdate = get_my_update_schedule_window_time(updateResolution)
+
+        logger.info(f"Time to update: {timeToUpdate}")
+        if datetime.now() < timeToUpdate:
+            logger.info("Not my time to update")
+            return
+
+    current_commit_hash = get_current_git_commit_hash()
+    scheduled_commit_hash = metadata.get('commit')
+
+    if current_commit_hash == scheduled_commit_hash:
+        logger.info("I'm up to date")
+    else:
+        logger.info("I need to update")
+        trigger_update(scheduled_commit_hash)
+
+def trigger_update (scheduled_commit_hash):
+    logger.info("Triggering update")
+
+    # git fetch origin and checkout the commit id in the metadata update.
+    logger.info("Fetching origin...")
+    res = os.popen("git fetch").read()
+    logger.info(res)
+
+    # logger.info(f"Checking out commit {scheduled_commit_hash}")
+    # res = os.popen(f"git checkout {scheduled_commit_hash}").read()
+    # logger.info(res)
+    #
+    # docker_compose_file = os.getenv('DOCKER_COMPOSE_FILE')
+    # logger.info(f"Running docker-compose -f {docker_compose_file} up -d")
+    # res = os.popen(f"docker-compose -f {docker_compose_file} up -d").read()
+    # logger.info(res)

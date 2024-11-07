@@ -15,7 +15,8 @@ echo "------------------------------------"
 # ----- SETUP MANAGER CRON -----
 echo -e "${BLUE}Adding scheduled manager run...${NC}"
 
-sudo crontab $HOME/setup/deployment-poll.cron -u $username
+sudo crontab $HOME/deployment/.env -u $username
+(env ; cat $HOME/setup/deployment-poll.cron) | crontab - -u $username
 sudo service cron restart
 
 echo -e "${GREEN}Manager schedule set!${NC}"

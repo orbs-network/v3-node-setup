@@ -24,3 +24,5 @@ loginctl enable-linger $username # This errors when running in Docker container 
 sudo mkdir -p /opt/orbs
 sudo chown -R $username:$username /opt/orbs/
 sudo chmod -R 755 /opt/orbs/
+
+export DOCKER_COMPOSE_FILE=/home/ubuntu/deployment/docker-compose.yml

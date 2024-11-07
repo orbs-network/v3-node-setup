@@ -8,3 +8,4 @@ uv.sh
 
 .env
 log.txt
+docker-compose-dev.yml
