@@ -159,16 +159,24 @@ def compare ():
 def trigger_update (scheduled_commit_hash):
     logger.info("Triggering update")
 
+    if os.getenv('DONT_UPDATE' , 'false') == 'true':
+        logger.error("DONT_UPDATE is set to true, skipping update")
+        return
+
     # git fetch origin and checkout the commit id in the metadata update.
     logger.info("Fetching origin...")
     res = os.popen("git fetch").read()
     logger.info(res)
 
-    # logger.info(f"Checking out commit {scheduled_commit_hash}")
-    # res = os.popen(f"git checkout {scheduled_commit_hash}").read()
-    # logger.info(res)
-    #
-    # docker_compose_file = os.getenv('DOCKER_COMPOSE_FILE')
-    # logger.info(f"Running docker-compose -f {docker_compose_file} up -d")
-    # res = os.popen(f"docker-compose -f {docker_compose_file} up -d").read()
-    # logger.info(res)
+    logger.info("Stashing out any local changes...")
+    res = os.popen("git stash").read()
+    logger.info(res)
+
+    logger.info(f"Checking out commit {scheduled_commit_hash}")
+    res = os.popen(f"git checkout {scheduled_commit_hash}").read()
+    logger.info(res)
+
+    docker_compose_file = os.getenv('DOCKER_COMPOSE_FILE')
+    logger.info(f"Running docker-compose -f {docker_compose_file} up -d")
+    res = os.popen(f"docker-compose -f {docker_compose_file} up -d").read()
+    logger.info(res)
