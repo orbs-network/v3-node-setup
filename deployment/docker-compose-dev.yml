@@ -8,7 +8,7 @@ version: "3.8"
 # updateResolution: 1440
 # updateMode: immediate
 # updateInAction: true
-# commit: 56554963
+# commit: 656fdc20
 # ---- UPDATE-DESCRIPTOR-END ----
 
 services:
@@ -117,7 +117,7 @@ services:
 
   vm-l3-dummy-service:
     container_name: vm-l3-dummy-service
-    image: host.docker.internal:6000/l3-dummy-service:latest
+    image: host.docker.internal:6000/l3-dummy-service:v1
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/vm-l3-dummy-service:/opt/orbs/status
