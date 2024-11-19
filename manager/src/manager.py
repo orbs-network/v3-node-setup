@@ -1,7 +1,7 @@
 """ Main entry point of the manager """
 
 import docker
-
+import sys
 from config import status_file
 from logger import logger
 from system_monitor import SystemMonitor
@@ -22,6 +22,10 @@ data = {
 def main():
     """Main entry point of the manager"""
 
+    cmd = None
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1]
+
     logger.info("Running manager...")
 
     # TODO - add back when we split into separate repos
@@ -31,22 +35,24 @@ def main():
     # Get the latest tag
     # latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
-    updater.compare()
+    if cmd == "poll":
+        updater.compare()
 
-    # hard coded for now
-    latest_tag = "0.0.1"
+    if cmd is None:
+        # hard coded for now
+        latest_tag = "0.0.1"
 
-    # upddate manager info
-    if latest_tag and latest_tag != data["currentVersion"]:
-        # checkout_command = f"git checkout {latest_tag}"
-        # run_command(checkout_command)  # checkout the latest tag
-        docker_compose_file = getenv('DOCKER_COMPOSE_FILE')
+        # upddate manager info
+        if latest_tag and latest_tag != data["currentVersion"]:
+            # checkout_command = f"git checkout {latest_tag}"
+            # run_command(checkout_command)  # checkout the latest tag
+            docker_compose_file = getenv('DOCKER_COMPOSE_FILE')
 
-        error = run_command(
-            f"docker-compose -f {docker_compose_file} up -d"
-        )
-        if error:
-            print("Error running docker-compose")
+            error = run_command(
+                f"docker-compose -f {docker_compose_file} up -d"
+            )
+            if error:
+                print("Error running docker-compose")
 
     system_monitor.update()
     system_monitor.persist(status_file)

@@ -21,13 +21,17 @@ from logger import logger
 # ---- UPDATE-DESCRIPTOR-END ----
 
 def fetch_remote_descriptor ():
-    url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
+    #url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
+    url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "origin/main:deployment/docker-compose.yml")
 
     try:
-        logger.info(f"Fetching remote descriptor from {url}")
-        response = requests.get(url)
-        response.raise_for_status()  # Check for HTTP errors
-        data = response.text
+        logger.info(f"Fetching remote descriptor from remote git {url}")
+        data = os.popen(f"git fetch origin").read()
+        logger.info(data)
+        data = os.popen(f"git show {url}").read()
+        # response = requests.get(url)
+        # response.raise_for_status()  # Check for HTTP errors
+        # data = response.text
     except requests.exceptions.RequestException as e:
         logger.error(f"An error occurred while fetching the file: {e}")
         data = None
@@ -150,25 +154,27 @@ def compare ():
     current_commit_hash = get_current_git_commit_hash()
     scheduled_commit_hash = metadata.get('commit')
 
-    if current_commit_hash == scheduled_commit_hash:
-        logger.info("I'm up to date")
+    if current_commit_hash.startswith(scheduled_commit_hash):
+        logger.info(f"I'm up to date with commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
     else:
-        logger.info("I need to update")
+        logger.info(f"I need to update, current commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
         trigger_update(scheduled_commit_hash)
 
 def trigger_update (scheduled_commit_hash):
-    logger.info("Triggering update")
+    logger.info(f"Triggering update for commit hash: {scheduled_commit_hash}")
 
     if os.getenv('DONT_UPDATE' , 'false') == 'true':
         logger.error("DONT_UPDATE is set to true, skipping update")
         return
 
-    # git fetch origin and checkout the commit id in the metadata update.
-    logger.info("Fetching origin...")
-    res = os.popen("git fetch").read()
+    # fetch latest changes.
+
+    logger.info("Fetching latest changes")
+    res = os.popen ("git fetch origin").read()
     logger.info(res)
 
-    logger.info("Stashing out any local changes...")
+    # stash any local changes
+    logger.info("Stashing any local changes")
     res = os.popen("git stash").read()
     logger.info(res)
 

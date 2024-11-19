@@ -133,6 +133,7 @@ alias ms-exec="docker-compose -f $DC_FILE exec ethereum-reader sh"
 alias ew-exec="docker-compose -f $DC_FILE exec ethereum-writer sh"
 alias s-exec="docker-compose -f $DC_FILE exec signer sh"
 alias docker=podman
+alias sync="rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT"
 
 # fix crontab -e to use VIM
 
