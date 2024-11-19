@@ -5,7 +5,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG UBUNTU_VERSION=22.04
 
 # Add sudo to make more like EC2 instance
-RUN apt-get update && apt-get install -y fzf software-properties-common python3 python3-pip sudo locales vim curl
+RUN apt-get update && apt-get install -y fzf software-properties-common python3 python3-pip sudo locales vim curl rsync git
 
 # EC2 instances usually have locale settings
 RUN locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
@@ -94,9 +94,9 @@ WORKDIR /home/ubuntu
 #RUN echo 'alias ew-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec ethereum-writer sh"' >> ~/.bashrc
 #RUN echo 'alias s-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec signer sh"' >> ~/.bashrc
 
-COPY --chown=ubuntu:ubuntu setup setup
-COPY --chown=ubuntu:ubuntu manager manager
-COPY --chown=ubuntu:ubuntu deployment deployment
-COPY --chown=ubuntu:ubuntu logging logging
+#COPY --chown=ubuntu:ubuntu setup setup
+#COPY --chown=ubuntu:ubuntu manager manager
+#COPY --chown=ubuntu:ubuntu deployment deployment
+#COPY --chown=ubuntu:ubuntu logging logging
 
 ENTRYPOINT ["/entrypoint.sh"]

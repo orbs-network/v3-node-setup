@@ -1,1 +1,1 @@
-* * * * * cd $HOME/deployment && $HOME/manager/.venv/bin/python3 $HOME/manager/src/manager.py >> /tmp/manager.out 2>&1
+* * * * * cd $ORBS_ROOT/deployment && $ORBS_ROOT/manager/.venv/bin/python3 $ORBS_ROOT/manager/src/manager.py >> /tmp/manager.out 2>&1
