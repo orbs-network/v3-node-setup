@@ -26,6 +26,8 @@ def fetch_remote_descriptor ():
 
     try:
         logger.info(f"Fetching remote descriptor from remote git {url}")
+        data = os.popen(f"git fetch origin").read()
+        logger.info(data)
         data = os.popen(f"git show {url}").read()
         # response = requests.get(url)
         # response.raise_for_status()  # Check for HTTP errors
@@ -153,7 +155,7 @@ def compare ():
     scheduled_commit_hash = metadata.get('commit')
 
     if current_commit_hash.startswith(scheduled_commit_hash):
-        logger.info("I'm up to date")
+        logger.info(f"I'm up to date with commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
     else:
         logger.info(f"I need to update, current commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
         trigger_update(scheduled_commit_hash)
