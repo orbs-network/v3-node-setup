@@ -25,4 +25,4 @@ sudo mkdir -p /opt/orbs
 sudo chown -R $username:$username /opt/orbs/
 sudo chmod -R 755 /opt/orbs/
 
-export DOCKER_COMPOSE_FILE=/home/ubuntu/deployment/docker-compose.yml
+export DOCKER_COMPOSE_FILE=$ORBS_ROOT/deployment/docker-compose.yml

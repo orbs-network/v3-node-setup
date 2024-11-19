@@ -1,8 +1,11 @@
 #!/bin/bash
 #set -x
-export ORBS_ROOT=$HOME/orbs-node
-git clone $HOME/orbs-node-on-host $ORBS_ROOT
-rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT
+
+if [ -z "$ORBS_ROOT" ]; then
+  export ORBS_ROOT=$HOME/orbs-node
+  git clone $HOME/orbs-node-on-host $ORBS_ROOT
+  rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT
+fi
 
 source $ORBS_ROOT/setup/scripts/base.sh
 

@@ -27,12 +27,12 @@ services:
       test: service nginx status || exit 1
 
   ethereum-reader:
-    privileged: true
     container_name: ethereum-reader
     image: host.docker.internal:6000/management-service:latest
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
     environment:
       - DOCKER_COMPOSE_DESCRIPTOR_URL
       - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
@@ -63,6 +63,7 @@ services:
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
     environment:
       - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
