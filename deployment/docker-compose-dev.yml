@@ -8,7 +8,7 @@ version: "3.8"
 # updateResolution: 1440
 # updateMode: immediate
 # updateInAction: true
-# commit: 7def40e3e
+# commit: f16531ef
 # ---- UPDATE-DESCRIPTOR-END ----
 
 services:
