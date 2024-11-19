@@ -7,7 +7,7 @@ services:
     ports:
       - 80:80
     volumes:
-      - $HOME/deployment/nginx/conf.d:/etc/nginx/conf.d
+      - $ORBS_ROOT/deployment/nginx/conf.d:/etc/nginx/conf.d
       - /opt/orbs:/opt/orbs
     depends_on:
       - logger
