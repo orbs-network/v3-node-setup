@@ -46,7 +46,7 @@ echo -e "${BLUE} ORBS_ROOT: $ORBS_ROOT ${NC}"
 export DOCKER_COMPOSE_FILE=$ORBS_ROOT/deployment/docker-compose.yml
 
 set -a  # Automatically export all variables
-source "$ORBS_ROOT/deployment/.env"
+source $ORBS_ROOT/deployment/.env
 set +a
 
 

@@ -7,7 +7,7 @@ version: "3.8"
 #   - id: "*"
 # updateResolution: 1440
 # updateMode: immediate
-# updateInAction: true
+# updateInAction: false
 # commit: 656fdc20
 # ---- UPDATE-DESCRIPTOR-END ----
 
