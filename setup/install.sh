@@ -1,13 +1,9 @@
 #!/bin/bash
 #set -x
 
-if [ -z "$ORBS_ROOT" ]; then
-  export ORBS_ROOT=$HOME/orbs-node
-  git clone $HOME/orbs-node-on-host $ORBS_ROOT
-  rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT
-fi
+export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source $ORBS_ROOT/setup/scripts/base.sh
+source $SCRIPT_DIR/base.sh
 
 echo -e "${BLUE}
       ██████╗ ██████╗ ██████╗ ███████╗

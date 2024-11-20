@@ -25,4 +25,33 @@ sudo mkdir -p /opt/orbs
 sudo chown -R $username:$username /opt/orbs/
 sudo chmod -R 755 /opt/orbs/
 
+if [ -f /.dockerenv ]; then
+  export RUNNING_IN_DOCKER=true
+fi
+
+if [ "$RUNNING_IN_DOCKER" = "true" ]; then
+ echo -e "${YELLOW} Running in Docker container ! ${NC}"
+
+ export ORBS_ROOT=$HOME/orbs-node
+ git clone $HOME/orbs-node-on-host $ORBS_ROOT
+ rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT
+else
+  echo -e "${YELLOW} Running on host ! ${NC}"
+
+  export ORBS_ROOT=`git rev-parse --show-toplevel`
+fi
+
+echo -e "${BLUE} ORBS_ROOT: $ORBS_ROOT ${NC}"
+
 export DOCKER_COMPOSE_FILE=$ORBS_ROOT/deployment/docker-compose.yml
+
+set -a  # Automatically export all variables
+source "$ORBS_ROOT/deployment/.env"
+set +a
+
+
+
+
+
+
+
