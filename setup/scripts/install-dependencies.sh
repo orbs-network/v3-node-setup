@@ -4,6 +4,8 @@ echo -e "${BLUE}Installing dependencies. Please be patient as this may take seve
 
 UBUNTU_VERSION='22.04'
 
+ln -s $DOCKER_COMPOSE_FILE /opt/orbs/deployment.yml
+
 # Need to explicitly add docker.io registry
 echo "[registries.search]" | sudo tee /etc/containers/registries.conf
 echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf

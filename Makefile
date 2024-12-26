@@ -1,5 +1,7 @@
 registry:
-	@docker run -d -p 6000:5000 --name local-registry registry:2
+	@mkdir -p registry-data
+	@docker rm -f local-registry 2>/dev/null || true
+	docker run -d -p 6000:5000 -v $$(realpath registry-data):/var/lib/registry --name local-registry registry:2
 
 build_docker_dev:
 	@docker buildx build --platform linux/arm64 -t test-ubuntu_arm64 .

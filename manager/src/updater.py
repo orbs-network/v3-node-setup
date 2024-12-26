@@ -8,6 +8,8 @@ import yaml
 
 from logger import logger
 
+statusForUi = []
+isInUpdatingState = False
 
 # ---- UPDATE-DESCRIPTOR-BEGIN ----
 # targetNodes:
@@ -19,6 +21,22 @@ from logger import logger
 # updateInAction: false
 # commit: 64816f4876aa1483ba79ee5e9b061985ccd2b6b1
 # ---- UPDATE-DESCRIPTOR-END ----
+
+def get_updating_state_for_ui ():
+    global isInUpdatingState
+    return "updating" if isInUpdatingState else ""
+
+def get_status_for_ui ():
+    global statusForUi
+    return ", ".join(statusForUi)
+
+def set_status_for_ui (status):
+    global statusForUi
+    status = status.replace(",", " ")
+    statusForUi.insert (0, "• " + status)
+    if len(statusForUi) > 5:
+        statusForUi = statusForUi[:5]
+
 
 def fetch_remote_descriptor ():
     #url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
@@ -116,6 +134,8 @@ def get_my_update_schedule_window_time (spread_minutes):
 
 
 def compare ():
+    global isInUpdatingState
+
     logger.info("Comparing current state with metadata")
 
     metadata = fetch_and_parse_metadata()
@@ -147,6 +167,8 @@ def compare ():
 
     # Check if I need to update myself.
 
+    isInUpdatingState = True
+
     updateMode = metadata.get('updateMode', 'immediate')
 
     if updateMode == 'scheduled':
@@ -154,6 +176,8 @@ def compare ():
         updateResolution = metadata.get('updateResolution', 1440)
         logger.info(f"Update resolution: {updateResolution} minutes")
         timeToUpdate = get_my_update_schedule_window_time(updateResolution)
+
+        set_status_for_ui(f"Update scheduled for {timeToUpdate}")
 
         logger.info(f"Time to update: {timeToUpdate}")
         if datetime.now() < timeToUpdate:
@@ -166,15 +190,20 @@ def compare ():
 
     if current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash:
         logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
+        set_status_for_ui(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}")
     else:
         logger.info(f"I need to update, current commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
+        set_status_for_ui(f"Update in progress for commit hash: {scheduled_commit_hash}")
         trigger_update(scheduled_commit_hash)
+
+    isInUpdatingState = False
 
 def trigger_update (scheduled_commit_hash):
     logger.info(f"Triggering update for commit hash: {scheduled_commit_hash}")
 
     if os.getenv('DONT_UPDATE' , 'false') == 'true':
-        logger.error("DONT_UPDATE is set to true, skipping update")
+        set_status_for_ui("DONT_UPDATE is set to true - skipping update")
+        logger.info("DONT_UPDATE is set to true, skipping update")
         return
 
     # fetch latest changes.
@@ -196,3 +225,5 @@ def trigger_update (scheduled_commit_hash):
     logger.info(f"Running docker-compose -f {docker_compose_file} up -d")
     res = os.popen(f"docker-compose -f {docker_compose_file} up -d").read()
     logger.info(res)
+
+    logger.info("Update completed")
