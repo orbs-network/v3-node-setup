@@ -58,7 +58,7 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: host.docker.internal:6000/management-service:latest
+    image: orbsnetworkstaging/management-service:v2.7.1-immediate
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
