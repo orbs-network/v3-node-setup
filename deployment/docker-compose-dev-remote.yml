@@ -116,18 +116,6 @@ services:
       # TODO: improve this healthcheck
       test: ping -c 1 logger || exit 1
 
-  vm-l3-dummy-service:
-    container_name: vm-l3-dummy-service
-    image: host.docker.internal:6000/l3-dummy-service:latest
-    volumes:
-      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
-      - /opt/orbs/vm-l3-dummy-service:/opt/orbs/status
-    environment:
-      - STATUS_FILE_PATH=/opt/orbs/status/status.json
-    healthcheck:
-      # TODO: improve this healthcheck
-      test: ping -c 1 logger || exit 1
-
 networks:
   default:
     name: custom_network
