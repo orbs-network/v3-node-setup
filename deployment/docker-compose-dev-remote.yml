@@ -1,0 +1,134 @@
+# ---- UPDATE-DESCRIPTOR-BEGIN ----
+# targetNodes:
+#   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: "*"
+# updateResolution: 1440
+# updateMode: immediate
+# updateInAction: false
+# commit: 656fdc20
+# ---- UPDATE-DESCRIPTOR-END ----
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    #image: fabiocicerchia/nginx-lua:latest
+    ports:
+      - 80:80
+    volumes:
+      - $ORBS_ROOT/deployment/nginx/conf.d:/etc/nginx/conf.d
+      - /opt/orbs:/opt/orbs
+    depends_on:
+      - logger
+    healthcheck:
+      test: service nginx status || exit 1
+
+  ethereum-reader:
+    container_name: ethereum-reader
+    image: docker.io/orbsnetworkstaging/management-service:v2.7.7-cf626f11
+    command: "npm start"
+    volumes:
+      - /opt/orbs/ethereum-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
+    environment:
+      - DOCKER_COMPOSE_DESCRIPTOR_URL
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+      - NODE_ADDRESS
+      - ETHEREUM_ENDPOINT
+      - CHAIN=ethereum
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  ethereum-writer:
+    container_name: ethereum-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - /opt/orbs/ethereum-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x02Ca9F2c5dD0635516241efD480091870277865b
+      - ETHEREUM_ENDPOINT
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/ethereum-reader
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  matic-reader:
+    container_name: matic-reader
+    image: host.docker.internal:6000/management-service:latest
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
+    environment:
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+      - NODE_ADDRESS
+      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - ETHEREUM_FIRST_BLOCK=21700000
+      - ETHEREUM_POLL_INTERVAL_SECONDS=300
+      - CHAIN=polygon
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  matic-writer:
+    container_name: matic-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - /opt/orbs/matic-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x94f2da1ef22649c642500e8B1C3252A4670eE95b
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
+      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  signer:
+    container_name: signer
+    image: orbsnetworkstaging/signer:v2.6.1-immediate
+    command: "/opt/orbs/orbs-signer"
+    volumes:
+      - /opt/orbs/signer:/opt/orbs/status
+    environment:
+      - NODE_PRIVATE_KEY
+      - NODE_ADDRESS
+      - HTTP_ADDRESS=:80
+    healthcheck:
+      test: "/opt/orbs/healthcheck --url http://localhost:80 --output /opt/orbs/status/status.json"
+
+  logger:
+    container_name: logger
+    image: orbsnetworkstaging/v4-logger:v0.0.1
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/logger:/opt/orbs/status
+    environment:
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      # TODO: improve this healthcheck
+      test: ping -c 1 logger || exit 1
+
+  vm-l3-dummy-service:
+    container_name: vm-l3-dummy-service
+    image: host.docker.internal:6000/l3-dummy-service:latest
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/vm-l3-dummy-service:/opt/orbs/status
+    environment:
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      # TODO: improve this healthcheck
+      test: ping -c 1 logger || exit 1
+
+networks:
+  default:
+    name: custom_network
+    external: true

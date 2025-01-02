@@ -36,6 +36,7 @@ services:
       - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
+      - CHAIN=ethereum
     healthcheck:
       test: node healthcheck.js || exit 1
 
@@ -69,6 +70,7 @@ services:
       - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
       - ETHEREUM_FIRST_BLOCK=21700000
       - ETHEREUM_POLL_INTERVAL_SECONDS=300
+      - CHAIN=polygon
     healthcheck:
       test: node healthcheck.js || exit 1
 
