@@ -47,7 +47,7 @@ export DOCKER_COMPOSE_FILE=$ORBS_ROOT/deployment/docker-compose.yml
 
 set -a  # Automatically export all variables
 if [ -f $ORBS_ROOT/deployment/.env ]; then
-  source $ORBS_ROOT/deployment/.env
+  . $ORBS_ROOT/deployment/.env
 fi
 set +a
 

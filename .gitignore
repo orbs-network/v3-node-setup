@@ -9,4 +9,4 @@ uv.sh
 .env
 log.txt
 registry-data
-
+node_exporter*
