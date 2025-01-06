@@ -13,6 +13,7 @@ services:
   nginx:
     container_name: nginx
     image: nginx:latest
+    restart: unless-stopped
     #image: fabiocicerchia/nginx-lua:latest
     ports:
       - 80:80
@@ -27,13 +28,14 @@ services:
   ethereum-reader:
     container_name: ethereum-reader
     image: orbsnetworkstaging/management-service:v2.7.7-67783988
+    restart: unless-stopped
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-reader:/opt/orbs/status
       - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
     environment:
       - DOCKER_COMPOSE_DESCRIPTOR_URL
-      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+      #- INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
       - CHAIN=ethereum
@@ -44,6 +46,7 @@ services:
   ethereum-writer:
     container_name: ethereum-writer
     image: lukerogerson1/ethereum-writer:v1.7.3-main
+    restart: unless-stopped
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-writer:/opt/orbs/status
@@ -60,6 +63,7 @@ services:
   matic-reader:
     container_name: matic-reader
     image: orbsnetworkstaging/management-service:v2.7.7-67783988
+    restart: unless-stopped
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
@@ -79,6 +83,7 @@ services:
   matic-writer:
     container_name: matic-writer
     image: lukerogerson1/ethereum-writer:v1.7.3-main
+    restart: unless-stopped
     command: "npm start"
     volumes:
       - /opt/orbs/matic-writer:/opt/orbs/status
@@ -96,6 +101,7 @@ services:
   signer:
     container_name: signer
     image: orbsnetworkstaging/signer:v2.6.1-immediate
+    restart: unless-stopped
     command: "/opt/orbs/orbs-signer"
     volumes:
       - /opt/orbs/signer:/opt/orbs/status
@@ -109,6 +115,7 @@ services:
   logger:
     container_name: logger
     image: orbsnetworkstaging/v4-logger:v0.0.1
+    restart: unless-stopped
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/logger:/opt/orbs/status
