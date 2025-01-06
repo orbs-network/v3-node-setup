@@ -27,7 +27,7 @@ services:
 
   ethereum-reader:
     container_name: ethereum-reader
-    image: orbsnetworkstaging/management-service:v2.7.7-67783988
+    image: orbsnetworkstaging/management-service:1736178457
     restart: unless-stopped
     command: "npm start"
     volumes:
