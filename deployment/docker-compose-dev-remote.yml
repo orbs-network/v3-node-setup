@@ -26,7 +26,7 @@ services:
 
   ethereum-reader:
     container_name: ethereum-reader
-    image: docker.io/orbsnetworkstaging/management-service:v2.7.7-cf626f11
+    image: orbsnetworkstaging/management-service:v2.7.7-67783988
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-reader:/opt/orbs/status
@@ -37,6 +37,7 @@ services:
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
       - CHAIN=ethereum
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 
@@ -58,7 +59,7 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: orbsnetworkstaging/management-service:v2.7.1-immediate
+    image: orbsnetworkstaging/management-service:v2.7.7-67783988
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
@@ -71,6 +72,7 @@ services:
       - ETHEREUM_FIRST_BLOCK=21700000
       - ETHEREUM_POLL_INTERVAL_SECONDS=300
       - CHAIN=polygon
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 

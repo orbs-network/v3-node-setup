@@ -37,6 +37,7 @@ services:
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
       - CHAIN=ethereum
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 
@@ -71,6 +72,7 @@ services:
       - ETHEREUM_FIRST_BLOCK=21700000
       - ETHEREUM_POLL_INTERVAL_SECONDS=300
       - CHAIN=polygon
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 
