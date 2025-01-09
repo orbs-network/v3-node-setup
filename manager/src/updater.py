@@ -39,6 +39,9 @@ def set_status_for_ui (status):
     if status != "OK" and status != "Error":
         status = "• " + status
 
+    if len (statusForUi) > 0 and statusForUi[len (statusForUi)-1] == status:
+        return
+
     statusForUi.insert (0, status)
     if len(statusForUi) > 5:
         statusForUi = statusForUi[:5]
