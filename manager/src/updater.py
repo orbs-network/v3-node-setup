@@ -44,6 +44,7 @@ def set_status_for_ui (status):
 def set_error (error):
     global globalError
     globalError = error
+    set_status_for_ui("Error")
 
 def get_error ():
     global globalError
