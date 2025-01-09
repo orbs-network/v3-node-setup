@@ -250,6 +250,8 @@ class SystemMonitor:
 
             service_info.append(service_data)
 
+        logger.info("Fetching done.")
+
         return service_info
 
     def __is_not_blacklisted(self, env_var: str) -> bool:
