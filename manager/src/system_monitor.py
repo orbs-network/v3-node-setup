@@ -111,7 +111,7 @@ class SystemMonitor:
             if tag == "":
                 tag = "untagged"
 
-            if "fatal" in tag:
+            if tag.find("fatal") > -1:
                 raise Exception(f"Git returned: {tag}")
 
             return f"{commit} / {tag}"
