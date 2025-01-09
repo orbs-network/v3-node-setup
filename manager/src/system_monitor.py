@@ -218,6 +218,7 @@ class SystemMonitor:
         service_info = []
 
         for container in self._client.containers.list():
+            logger.info("Container: %s", container.name)
             container_attrs = container.attrs
             image = container_attrs.get("Image")
             if image is None:

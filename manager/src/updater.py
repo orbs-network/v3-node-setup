@@ -29,12 +29,14 @@ def get_updating_state_for_ui ():
 
 def get_status_for_ui ():
     global statusForUi
+    if len (statusForUi) == 0:
+        return "OK"
     return ", ".join(statusForUi)
 
 def set_status_for_ui (status):
     global statusForUi
     status = status.replace(",", " ")
-    if status != "OK":
+    if status != "OK" and status != "Error":
         status = "• " + status
 
     statusForUi.insert (0, status)

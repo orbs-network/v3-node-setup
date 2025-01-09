@@ -28,7 +28,6 @@ def main():
 
     logger.info("Running manager...")
     updater.set_error("")
-    updater.set_status_for_ui("OK")
 
     # TODO - add back when we split into separate repos
     # # Fetch all the tags from the remote repository
