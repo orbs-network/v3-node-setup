@@ -65,6 +65,20 @@ class SystemMonitor:
             Payload=Payload(Version=dict(Version(Semantic=self.version)), Metrics=self.metrics, Services=self.services),
         )
 
+    def set_status (self, status, error: str):
+        if status == self.status and error == self.error:
+            return
+
+        if status == "":
+            status = "OK"
+
+        self.status = status
+        self.error = error
+        if error != "":
+            logger.error("Status changed: "+status+ ", err:"+error)
+        else:
+            logger.info("Status changed: "+status+ ", err:"+error)
+
     def update(self):
         """Updates the status of the system"""
 

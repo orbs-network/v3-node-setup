@@ -40,12 +40,12 @@ def set_status_for_ui (status):
 
 def fetch_remote_descriptor ():
     #url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
-    url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "origin/main:deployment/docker-compose.yml")
+    url = os.getenv('DOCKER_COMPOSE_REMOTE_GIT_PATH', "origin/main:deployment/docker-compose.yml")
 
     try:
         logger.info(f"Fetching remote descriptor from remote git {url}")
         data = os.popen(f"git fetch origin").read()
-        logger.info(data)
+        logger.info(f"Fetch result: {data}")
         data = os.popen(f"git show {url}").read()
         # response = requests.get(url)
         # response.raise_for_status()  # Check for HTTP errors
@@ -57,41 +57,41 @@ def fetch_remote_descriptor ():
     return data
 
 def fetch_and_parse_metadata():
-    try:
-        logger.info("Fetching and parsing metadata...")
-        content = fetch_remote_descriptor()
+    # try:
+    logger.info("Fetching and parsing metadata...")
+    content = fetch_remote_descriptor()
 
-        # Extract the metadata section
-        descriptor_begin = "# ---- UPDATE-DESCRIPTOR-BEGIN ----"
-        descriptor_end = "# ---- UPDATE-DESCRIPTOR-END ----"
+    # Extract the metadata section
+    descriptor_begin = "# ---- UPDATE-DESCRIPTOR-BEGIN ----"
+    descriptor_end = "# ---- UPDATE-DESCRIPTOR-END ----"
 
-        # Find the metadata section between begin and end markers
-        metadata_match = re.search(
-            rf"{re.escape(descriptor_begin)}(.*?){re.escape(descriptor_end)}",
-            content,
-            re.DOTALL
-        )
+    # Find the metadata section between begin and end markers
+    metadata_match = re.search(
+        rf"{re.escape(descriptor_begin)}(.*?){re.escape(descriptor_end)}",
+        content,
+        re.DOTALL
+    )
 
-        if not metadata_match:
-            raise ValueError("Descriptor section not found in file")
+    if not metadata_match:
+        raise ValueError("Descriptor section not found in file")
 
-        # Extract metadata content and strip the comments
-        metadata_content = metadata_match.group(1)
-        metadata_content = re.sub(r"^\s*#\s*", "", metadata_content, flags=re.MULTILINE).strip()
+    # Extract metadata content and strip the comments
+    metadata_content = metadata_match.group(1)
+    metadata_content = re.sub(r"^\s*#\s*", "", metadata_content, flags=re.MULTILINE).strip()
 
-        # Parse as YAML and return
-        metadata_dict = yaml.safe_load(metadata_content)
-        return metadata_dict
+    # Parse as YAML and return
+    metadata_dict = yaml.safe_load(metadata_content)
+    return metadata_dict
 
-    except requests.exceptions.RequestException as e:
-        print(f"An error occurred while fetching the file: {e}")
-        return None
-    except ValueError as e:
-        print(f"Error: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+    # except requests.exceptions.RequestException as e:
+    #     print(f"An error occurred while fetching the file: {e}")
+    #     return None
+    # except ValueError as e:
+    #     print(f"Error: {e}")
+    #     return None
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
+    #     return None
 
 # def get_current_git_tag ():
 #     try:
