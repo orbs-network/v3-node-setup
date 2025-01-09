@@ -79,7 +79,7 @@ class SystemMonitor:
         #self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
         self.status = updater.get_status_for_ui()
         # TODO: What exactly is an error in this context?
-        self.error = ""
+        #self.error = ""
         #self.extra = get_status_for_ui()
         #self.extra = "updating"
         self.extra = updater.get_updating_state_for_ui()

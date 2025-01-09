@@ -27,6 +27,7 @@ def main():
         cmd = sys.argv[1]
 
     logger.info("Running manager...")
+    system_monitor.error = ""
 
     # TODO - add back when we split into separate repos
     # # Fetch all the tags from the remote repository
