@@ -111,6 +111,9 @@ class SystemMonitor:
             if tag == "":
                 tag = "untagged"
 
+            if "fatal" in tag:
+                raise Exception(f"Git returned: {tag}")
+
             return f"{commit} / {tag}"
         except Exception as e:
             logger.error(f"An error occurred while fetching the current git tag: {e}")
