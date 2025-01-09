@@ -8,6 +8,7 @@ import yaml
 
 from logger import logger
 
+globalError = ""
 statusForUi = []
 isInUpdatingState = False
 
@@ -33,10 +34,20 @@ def get_status_for_ui ():
 def set_status_for_ui (status):
     global statusForUi
     status = status.replace(",", " ")
-    statusForUi.insert (0, "• " + status)
+    if status != "OK":
+        status = "• " + status
+
+    statusForUi.insert (0, status)
     if len(statusForUi) > 5:
         statusForUi = statusForUi[:5]
 
+def set_error (error):
+    global globalError
+    globalError = error
+
+def get_error ():
+    global globalError
+    return globalError
 
 def fetch_remote_descriptor ():
     #url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")

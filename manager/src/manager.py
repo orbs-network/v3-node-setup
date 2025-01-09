@@ -27,7 +27,8 @@ def main():
         cmd = sys.argv[1]
 
     logger.info("Running manager...")
-    system_monitor.set_status("OK", "")
+    updater.set_error("")
+    updater.set_status_for_ui("OK")
 
     # TODO - add back when we split into separate repos
     # # Fetch all the tags from the remote repository
@@ -40,7 +41,7 @@ def main():
         try:
             updater.compare()
         except Exception as e:
-            system_monitor.set_status("Error", f"An error occurred while comparing: {e}")
+            updater.set_error(f"An error occurred while comparing: {e}")
 
 
     if cmd is None:

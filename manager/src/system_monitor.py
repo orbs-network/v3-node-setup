@@ -65,19 +65,19 @@ class SystemMonitor:
             Payload=Payload(Version=dict(Version(Semantic=self.version)), Metrics=self.metrics, Services=self.services),
         )
 
-    def set_status (self, status, error: str):
-        if status == self.status and error == self.error:
-            return
-
-        if status == "":
-            status = "OK"
-
-        self.status = status
-        self.error = error
-        if error != "":
-            logger.error("Status changed: "+status+ ", err:"+error)
-        else:
-            logger.info("Status changed: "+status+ ", err:"+error)
+    # def set_status (self, status, error: str):
+    #     if status == self.status and error == self.error:
+    #         return
+    #
+    #     if status == "":
+    #         status = "OK"
+    #
+    #     self.status = status
+    #     self.error = error
+    #     if error != "":
+    #         logger.error("Status changed: "+status+ ", err:"+error)
+    #     else:
+    #         logger.info("Status changed: "+status+ ", err:"+error)
 
     def update(self):
         """Updates the status of the system"""
@@ -92,6 +92,7 @@ class SystemMonitor:
         self.timestamp = timestamp
         #self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
         self.status = updater.get_status_for_ui()
+        self.error = updater.get_error()
         # TODO: What exactly is an error in this context?
         #self.error = ""
         #self.extra = get_status_for_ui()
