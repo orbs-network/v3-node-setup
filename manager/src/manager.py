@@ -36,7 +36,12 @@ def main():
     # latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
     if cmd == "poll":
-        updater.compare()
+        try:
+            updater.compare()
+        except Exception as e:
+            logger.error(f"An error occurred while comparing: {e}")
+            system_monitor.error = f"An error occurred while comparing: {e}"
+
 
     if cmd is None:
         # hard coded for now
