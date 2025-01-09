@@ -48,6 +48,10 @@ def set_status_for_ui (status):
 
 def set_error (error):
     global globalError
+    if globalError == error:
+        return
+
+    logger.error(f"Setting status error: {error}")
     globalError = error
     set_status_for_ui("Error")
 

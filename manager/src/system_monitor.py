@@ -123,9 +123,6 @@ class SystemMonitor:
             commit = self.run_with_stderr ("git rev-parse HEAD")
             tag = self.run_with_stderr("git describe --tags --exact-match")
 
-            logger.info("Fetching current git tag...")
-            logger.info (f"commit: {commit}, tag: {tag}")
-
             if tag == "":
                 tag = "untagged"
 
