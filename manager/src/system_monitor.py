@@ -1,5 +1,6 @@
 """ A helper class for getting system metrics and status. """
 
+import subprocess
 import json
 import os
 from datetime import datetime
@@ -79,6 +80,19 @@ class SystemMonitor:
     #     else:
     #         logger.info("Status changed: "+status+ ", err:"+error)
 
+    def run_with_stderr (self, cmd):
+        # split cmd to list
+        cmd_list = cmd.split()
+
+        result = subprocess.run(
+            cmd_list,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        return result.stdout.strip()
+
     def update(self):
         """Updates the status of the system"""
 
@@ -106,8 +120,9 @@ class SystemMonitor:
     def _get_version(self):
         # Get current git commit and git tag if available and combine them to a single version string.
         try:
-            commit = os.popen ("git rev-parse HEAD").read().strip()
-            tag = os.popen("git describe --tags --exact-match").read().strip()
+            commit = self.run_with_stderr ("git rev-parse HEAD")
+            tag = self.run_with_stderr("git describe --tags --exact-match")
+
             if tag == "":
                 tag = "untagged"
 
