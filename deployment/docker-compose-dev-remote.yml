@@ -188,7 +188,7 @@ services:
     logging: *default-logging
     restart: unless-stopped
     container_name: vm-twap
-    image: orbsnetwork/vm-twap:v1.19.14
+    image: orbsnetwork/vm-twap:v1.19.31
     entrypoint: ["/opt/orbs/service"]
     #command: ["--config","/run/secrets/config.json","--config","/run/secrets/keys.json"]
     volumes:
