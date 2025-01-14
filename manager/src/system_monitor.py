@@ -117,6 +117,9 @@ class SystemMonitor:
         self.services = self._get_docker_service_info()
         self.version = self._get_version()
 
+        logger.info("System status updated with the following data:")
+        logger.info(self.__dump_json())
+
     def _get_version(self):
         # Get current git commit and git tag if available and combine them to a single version string.
         try:

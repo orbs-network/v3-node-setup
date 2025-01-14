@@ -9,8 +9,15 @@
 # commit: 656fdc20
 # ---- UPDATE-DESCRIPTOR-END ----
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "200m"
+    max-file: "3"
+
 services:
   nginx:
+    logging: *default-logging
     container_name: nginx
     image: nginx:latest
     restart: unless-stopped
@@ -26,6 +33,7 @@ services:
       test: service nginx status || exit 1
 
   ethereum-reader:
+    logging: *default-logging
     networks:
       default:
         aliases:
@@ -48,6 +56,7 @@ services:
       test: node healthcheck.js || exit 1
 
   ethereum-writer:
+    logging: *default-logging
     container_name: ethereum-writer
     image: lukerogerson1/ethereum-writer:v1.7.3-main
     restart: unless-stopped
@@ -65,6 +74,7 @@ services:
       test: node healthcheck.js || exit 1
 
   matic-reader:
+    logging: *default-logging
     container_name: matic-reader
     image: orbsnetworkstaging/management-service:1736783819
     restart: unless-stopped
@@ -84,6 +94,7 @@ services:
       test: node healthcheck.js || exit 1
 
   matic-writer:
+    logging: *default-logging
     container_name: matic-writer
     image: lukerogerson1/ethereum-writer:v1.7.3-main
     restart: unless-stopped
@@ -102,6 +113,7 @@ services:
       test: node healthcheck.js || exit 1
 
   signer:
+    logging: *default-logging
     container_name: signer
       #image: orbsnetworkstaging/signer:v2.6.1-immediate
     image: orbsnetworkstaging/signer:v2.6.0-59e1b92f
@@ -118,6 +130,7 @@ services:
       test: "/opt/orbs/healthcheck --url http://localhost:80 --output /opt/orbs/status/status.json"
 
   logger:
+    logging: *default-logging
     container_name: logger
     image: orbsnetworkstaging/v4-logger:v0.0.1
     restart: unless-stopped
@@ -132,6 +145,7 @@ services:
 
 
   vm-notifications:
+    logging: *default-logging
     restart: unless-stopped
     container_name: vm-notifications
       #image: orbsnetwork/vm-notifications:v1.0.2
@@ -149,6 +163,7 @@ services:
       test: ping -c 1 logger || exit 1
 
   vm-lambda:
+    logging: *default-logging
     restart: unless-stopped
     container_name: vm-lambda
     image: orbsnetwork/vm-lambda:v0.0.27
@@ -167,6 +182,7 @@ services:
       #- ethereum-reader
 
   vm-twap:
+    logging: *default-logging
     restart: unless-stopped
     container_name: vm-twap
     image: orbsnetwork/vm-twap:v1.19.31
@@ -183,7 +199,6 @@ services:
       #test: "/opt/orbs/healthcheck.sh --url http://localhost:80 --output /opt/orbs/status/status.json"
     depends_on:
       - ethereum-reader
-
 
 networks:
   default:

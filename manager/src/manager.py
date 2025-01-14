@@ -27,7 +27,7 @@ def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
 
-    logger.info(f"Running manager on node {get_guardian_node_id()}...")
+    logger.info(f"Running controller on node [{get_guardian_node_id()}] ...")
     updater.set_error("")
 
     # TODO - add back when we split into separate repos
