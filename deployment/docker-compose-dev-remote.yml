@@ -4,10 +4,10 @@
 #   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
 #   - id: "*"
 # updateResolution: 1440
-# (can be immediate or scheduled)
+# # can be immediate or scheduled
 # updateMode: scheduled
 # updateInAction: true
-# (can be commit id or latest)
+# # can be commit id or latest
 # commit: latest
 # ---- UPDATE-DESCRIPTOR-END ----
 
