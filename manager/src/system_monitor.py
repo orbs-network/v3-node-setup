@@ -117,13 +117,13 @@ class SystemMonitor:
         self.services = self._get_docker_service_info()
         self.version = self._get_version()
 
-        logger.info("System status updated with the following data:")
-        logger.info(self.__dump_json())
+        logger.info("System status updated.")
 
     def _get_version(self):
         # Get current git commit and git tag if available and combine them to a single version string.
+
+        commit = self.run_with_stderr ("git rev-parse HEAD")
         try:
-            commit = self.run_with_stderr ("git rev-parse HEAD")
             tag = self.run_with_stderr("git describe --tags --exact-match")
 
             if tag == "":
@@ -134,8 +134,8 @@ class SystemMonitor:
 
             return f"{commit} / {tag}"
         except Exception as e:
-            logger.error(f"An error occurred while fetching the current git tag: {e}")
-            return f"{e}"
+            logger.error(f"An error occurred while fetching the current git tag: {e}, using commit {commit} instead.")
+            return f"{commit} / notag"
 
     def persist(self, status_file_path: str):
         """Persists the status of the system to a file"""
