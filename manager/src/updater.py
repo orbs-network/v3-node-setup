@@ -134,8 +134,8 @@ def get_current_git_tag ():
 
 def get_current_git_commit_hash ():
     try:
-        logger.info("Fetching current git commit hash...")
         commit_hash = os.popen("git rev-parse HEAD").read().strip()
+        logger.info(f"Fetching current git commit hash {commit_hash}")
         return commit_hash
     except Exception as e:
         logger.error(f"An error occurred while fetching the current git commit hash: {e}")
@@ -179,6 +179,8 @@ def get_remote_latest_commit_hash ():
         ["git", "ls-remote", "origin", branch_name],
         text=True
     ).split()[0]
+
+    logger.info(f"Latest commit hash for branch {branch_name}: {commit_id}")
 
     return commit_id
 
