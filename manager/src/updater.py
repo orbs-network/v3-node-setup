@@ -146,8 +146,9 @@ def get_guardian_node_id ():
 
 def get_timestamp_of_commit_hash (commit_hash):
     try:
-        logger.info(f"Fetching timestamp of commit hash: {commit_hash}")
+        #logger.info(f"Fetching timestamp of commit hash: {commit_hash}")
         timestamp = os.popen(f"git show -s --format=%ci {commit_hash}").read().strip()
+        logger.info (f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
         return timestamp
     except Exception as e:
         logger.error(f"An error occurred while fetching the timestamp of commit hash: {e}")
