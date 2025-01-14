@@ -6,6 +6,7 @@ from config import status_file
 from logger import logger
 from system_monitor import SystemMonitor
 import updater
+from updater import get_guardian_node_id
 from utils import run_command
 from os import getenv
 
@@ -26,7 +27,7 @@ def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
 
-    logger.info("Running manager...")
+    logger.info(f"Running manager on node {get_guardian_node_id()}...")
     updater.set_error("")
 
     # TODO - add back when we split into separate repos
