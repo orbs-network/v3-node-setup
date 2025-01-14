@@ -167,12 +167,19 @@ def get_my_update_schedule_window_time (spread_minutes, commit_hash):
 
     return target_time
 
+def extract_branch_name():
+    git_url = os.getenv('DOCKER_COMPOSE_REMOTE_GIT_PATH', "origin/main:deployment/docker-compose.yml")
+
+    if ":" in git_url:
+        branch = git_url.split(":")[0]  # Get the part before the colon
+        if "/" in branch:
+            return branch.split("/")[-1]  # Get the part after the last '/'
+        return branch
+    return None  # Return None if format is invalid
+
 def get_remote_latest_commit_hash ():
     # Step 1: Get the current branch name
-    branch_name = subprocess.check_output(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        text=True
-    ).strip()
+    branch_name = extract_branch_name()
 
     # Step 2: Get the latest commit ID from the remote for the current branch
     commit_id = subprocess.check_output(
@@ -227,7 +234,6 @@ def compare ():
     scheduled_commit_hash = metadata.get('commit')
     if scheduled_commit_hash=="latest":
         scheduled_commit_hash = get_remote_latest_commit_hash()
-        logger.info(f"Latest commit hash: {scheduled_commit_hash}")
 
     if updateMode == 'scheduled':
         logger.info("Scheduled update mode")
