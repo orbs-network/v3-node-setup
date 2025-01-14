@@ -26,8 +26,12 @@ services:
       test: service nginx status || exit 1
 
   ethereum-reader:
+    networks:
+      default:
+        aliases:
+          - management-service
     container_name: ethereum-reader
-    image: orbsnetworkstaging/management-service:1736178457
+    image: orbsnetworkstaging/management-service:1736783819
     restart: unless-stopped
     command: "npm start"
     volumes:
@@ -62,7 +66,7 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: orbsnetworkstaging/management-service:1736245295
+    image: orbsnetworkstaging/management-service:1736783819
     restart: unless-stopped
     command: "npm start"
     volumes:
@@ -99,12 +103,14 @@ services:
 
   signer:
     container_name: signer
-    image: orbsnetworkstaging/signer:v2.6.1-immediate
+      #image: orbsnetworkstaging/signer:v2.6.1-immediate
+    image: orbsnetworkstaging/signer:v2.6.0-59e1b92f
     restart: unless-stopped
-    command: "/opt/orbs/orbs-signer"
+    #command: "/opt/orbs/orbs-signer"
     volumes:
       - /opt/orbs/signer:/opt/orbs/status
     environment:
+      - MULTILOG_DISABLED=1
       - NODE_PRIVATE_KEY
       - NODE_ADDRESS
       - HTTP_ADDRESS=:80
@@ -126,16 +132,57 @@ services:
 
 
   vm-notifications:
+    restart: unless-stopped
     container_name: vm-notifications
-    image: orbsnetwork/vm-notifications:v1.0.2
+      #image: orbsnetwork/vm-notifications:v1.0.2
+    image: orbsnetwork/vm-notifications:v1.0.31
+    entrypoint: ["/opt/orbs/service"]
+    #command: ["--config","/run/secrets/config.json","--config","/run/secrets/keys.json"]  
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/vm-notifications:/opt/orbs/status
     environment:
+      - MULTILOG_DISABLED=1
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
       # TODO: improve this healthcheck
       test: ping -c 1 logger || exit 1
+
+  vm-lambda:
+    restart: unless-stopped
+    container_name: vm-lambda
+    image: orbsnetwork/vm-lambda:v0.0.27
+    entrypoint: ["/opt/orbs/service"]
+    #command: ["--config","/run/secrets/config.json","--config","/run/secrets/keys.json"]
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/vm-lambda:/opt/orbs/status
+    environment:
+      - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+        #    healthcheck:
+      # TODO: improve this healthcheck
+      #test: "/opt/orbs/healthcheck.sh --url http://localhost:80 --output /opt/orbs/status/status.json"
+      # depends_on:
+      #- ethereum-reader
+
+  vm-twap:
+    restart: unless-stopped
+    container_name: vm-twap
+    image: orbsnetwork/vm-twap:v1.19.31
+    entrypoint: ["/opt/orbs/service"]
+    #command: ["--config","/run/secrets/config.json","--config","/run/secrets/keys.json"]
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/vm-twap:/opt/orbs/status
+    environment:
+      - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+        #    healthcheck:
+      # TODO: improve this healthcheck
+      #test: "/opt/orbs/healthcheck.sh --url http://localhost:80 --output /opt/orbs/status/status.json"
+    depends_on:
+      - ethereum-reader
 
 
 networks:
