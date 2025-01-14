@@ -153,6 +153,20 @@ def get_my_update_schedule_window_time (spread_minutes):
 
     return target_time
 
+def get_remote_latest_commit_hash ():
+    # Step 1: Get the current branch name
+    branch_name = subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        text=True
+    ).strip()
+
+    # Step 2: Get the latest commit ID from the remote for the current branch
+    commit_id = subprocess.check_output(
+        ["git", "ls-remote", "origin", branch_name],
+        text=True
+    ).split()[0]
+
+    return commit_id
 
 def compare ():
     global isInUpdatingState
@@ -208,6 +222,9 @@ def compare ():
     current_git_tag = get_current_git_tag()
     current_commit_hash = get_current_git_commit_hash()
     scheduled_commit_hash = metadata.get('commit')
+    if scheduled_commit_hash=="latest":
+        scheduled_commit_hash = get_remote_latest_commit_hash()
+        logger.info(f"Latest commit hash: {scheduled_commit_hash}")
 
     if current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash:
         logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
