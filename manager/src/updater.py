@@ -144,12 +144,23 @@ def get_current_git_commit_hash ():
 def get_guardian_node_id ():
     return os.getenv('NODE_ADDRESS', None)
 
-def get_my_update_schedule_window_time (spread_minutes):
+def get_timestamp_of_commit_hash (commit_hash):
+    try:
+        logger.info(f"Fetching timestamp of commit hash: {commit_hash}")
+        timestamp = os.popen(f"git show -s --format=%ci {commit_hash}").read().strip()
+        return timestamp
+    except Exception as e:
+        logger.error(f"An error occurred while fetching the timestamp of commit hash: {e}")
+        return None
+
+def get_my_update_schedule_window_time (spread_minutes, commit_hash):
     hash_value = get_guardian_node_id()
     hash_int = int(hashlib.sha256(hash_value.encode()).hexdigest(), 16)
     minute_of_day = hash_int % spread_minutes
-    today = datetime.now().replace(second=0, microsecond=0)
-    target_time = today + timedelta(minutes=minute_of_day)
+    #today = datetime.now().replace(second=0, microsecond=0)
+    baseline_time = get_timestamp_of_commit_hash(commit_hash)
+    #today = datetime.strptime(baseline_time, "%Y-%m-%d %H:%M:%S %z").replace(second=0, microsecond=0)
+    target_time = baseline_time + timedelta(minutes=minute_of_day)
 
     return target_time
 
@@ -206,11 +217,18 @@ def compare ():
 
     updateMode = metadata.get('updateMode', 'immediate')
 
+    current_git_tag = get_current_git_tag()
+    current_commit_hash = get_current_git_commit_hash()
+    scheduled_commit_hash = metadata.get('commit')
+    if scheduled_commit_hash=="latest":
+        scheduled_commit_hash = get_remote_latest_commit_hash()
+        logger.info(f"Latest commit hash: {scheduled_commit_hash}")
+
     if updateMode == 'scheduled':
         logger.info("Scheduled update mode")
         updateResolution = metadata.get('updateResolution', 1440)
         logger.info(f"Update resolution: {updateResolution} minutes")
-        timeToUpdate = get_my_update_schedule_window_time(updateResolution)
+        timeToUpdate = get_my_update_schedule_window_time(updateResolution, scheduled_commit_hash)
 
         set_status_for_ui(f"Update scheduled for {timeToUpdate}")
 
@@ -218,13 +236,6 @@ def compare ():
         if datetime.now() < timeToUpdate:
             logger.info("Not my time to update")
             return
-
-    current_git_tag = get_current_git_tag()
-    current_commit_hash = get_current_git_commit_hash()
-    scheduled_commit_hash = metadata.get('commit')
-    if scheduled_commit_hash=="latest":
-        scheduled_commit_hash = get_remote_latest_commit_hash()
-        logger.info(f"Latest commit hash: {scheduled_commit_hash}")
 
     if current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash:
         logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
