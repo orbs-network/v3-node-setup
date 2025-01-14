@@ -146,11 +146,10 @@ def get_guardian_node_id ():
 
 def get_timestamp_of_commit_hash (commit_hash):
     try:
-        unixtime = os.popen(f"git show -s --format=%ci {commit_hash}").read().strip()
-        logger.info (f"Baseline commit hash timestamp: {unixtime} for commit: {commit_hash}")
+        unixtime = os.popen(f"git show -s --format=%ct {commit_hash}").read().strip()
+        timestamp = datetime.fromtimestamp(int(unixtime))
+        logger.info (f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
 
-        # convert to datetime which is in unix: 1736860464 format to datetime
-        timestamp = datetime.datetime.fromtimestamp(int(unixtime))
         return timestamp
 
     except Exception as e:
