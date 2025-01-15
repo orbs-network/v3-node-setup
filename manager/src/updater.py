@@ -1,16 +1,17 @@
 import hashlib
 import os
 import re
-from datetime import datetime, timedelta
 import subprocess
+from datetime import datetime, timedelta
+
 import requests
 import yaml
-
 from logger import logger
 
 globalError = ""
 statusForUi = []
 isInUpdatingState = False
+updateTargetTime = 0
 
 # ---- UPDATE-DESCRIPTOR-BEGIN ----
 # targetNodes:
@@ -25,7 +26,12 @@ isInUpdatingState = False
 
 def get_updating_state_for_ui ():
     global isInUpdatingState
-    return "updating" if isInUpdatingState else ""
+
+    if (isInUpdatingState):
+        return '{"status": "updating", "time": '+updateTargetTime+'}'
+    else:
+        return ""
+    #return "updating" if isInUpdatingState else ""
 
 def get_status_for_ui ():
     global statusForUi
@@ -192,7 +198,7 @@ def get_remote_latest_commit_hash ():
     return commit_id
 
 def compare ():
-    global isInUpdatingState
+    global isInUpdatingState, updateTargetTime
 
     logger.info("Comparing current state with metadata")
 
@@ -240,6 +246,7 @@ def compare ():
         updateResolution = metadata.get('updateResolution', 1440)
         logger.info(f"Update resolution: {updateResolution} minutes")
         timeToUpdate = get_my_update_schedule_window_time(updateResolution, scheduled_commit_hash)
+        updateTargetTime = timeToUpdate.strftime('%s')
 
         set_status_for_ui(f"Update scheduled for {timeToUpdate}")
 
@@ -247,6 +254,8 @@ def compare ():
         if datetime.now() < timeToUpdate:
             logger.info("Not my time to update")
             return
+
+    updateTargetTime = 0
 
     if current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash:
         logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
