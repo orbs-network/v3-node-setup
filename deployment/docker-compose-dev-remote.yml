@@ -7,7 +7,7 @@
 # updateResolution: 1440
 # # can be immediate or scheduled
 # updateMode: scheduled
-# updateInAction: true
+# updateInAction: false
 # # can be commit id or latest
 # commit: latest
 # ---- UPDATE-DESCRIPTOR-END ----
