@@ -61,7 +61,7 @@ services:
   ethereum-writer:
     logging: *default-logging
     container_name: ethereum-writer
-    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    image: orbsnetworkstaging/ethereum-writer:v1.8.0-immediate
     restart: unless-stopped
     command: "npm start"
     volumes:
@@ -99,7 +99,7 @@ services:
   matic-writer:
     logging: *default-logging
     container_name: matic-writer
-    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    image: orbsnetworkstaging/ethereum-writer:v1.8.0-immediate
     restart: unless-stopped
     command: "npm start"
     volumes:
