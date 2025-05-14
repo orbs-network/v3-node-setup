@@ -6,7 +6,7 @@
 # # used 1440 to spread over a day.
 # updateResolution: 120
 # # can be immediate or scheduled
-# updateMode: scheduled
+# updateMode: immediate
 # updateInAction: true
 # # can be commit id or latest
 # commit: latest
