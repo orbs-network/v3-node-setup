@@ -169,12 +169,15 @@ services:
     logging: *default-logging
     restart: unless-stopped
     container_name: vm-lambda
-    image: orbsnetwork/vm-lambda:v0.0.27
+    #image: orbsnetwork/vm-lambda:v0.0.27
+    image: orbsnetworkstaging/vm-lambda:jordan9
     entrypoint: ["/opt/orbs/service"]
     #command: ["--config","/run/secrets/config.json","--config","/run/secrets/keys.json"]
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/vm-lambda:/opt/orbs/status
+      - NODE_ENV=stagingv4
+      - MULTILOG_DISABLED=1
     environment:
       - MULTILOG_DISABLED=1
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
