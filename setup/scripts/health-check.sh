@@ -1,14 +1,13 @@
 #!/bin/bash
 
 check_services() {
-  compose_file="$HOME/deployment/docker-compose.yml"
   # Get the number of services defined in docker-compose file
-  num_services=$(docker-compose -f $compose_file config --services | wc -l)
+  num_services=$(docker-compose -f $DOCKER_COMPOSE_FILE config --services | wc -l)
 
   for i in {1..5}
   do
     # Get the number of services that are up
-    num_up=$(docker-compose -f $compose_file ps | grep "Up" | wc -l)
+    num_up=$(docker-compose -f $DOCKER_COMPOSE_FILE ps | grep "Up" | wc -l)
     if [ $num_up -eq $num_services ]; then
       echo "All services are up and running."
       return 0

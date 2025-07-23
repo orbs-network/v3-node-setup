@@ -1,13 +1,16 @@
 """ A helper class for getting system metrics and status. """
 
+import subprocess
 import json
+import os
 from datetime import datetime
 
 import docker
 import psutil
+import updater
 
 from logger import logger
-from system_monitor_types import Payload, Status
+from system_monitor_types import Payload, Status, Version
 
 
 class SystemMonitor:
@@ -26,9 +29,11 @@ class SystemMonitor:
     timestamp: str = ""
     status: str = ""
     error: str = ""
+    extra: str = ""
     metrics: dict
     services: dict
     start_time: float
+    version: str = ""
 
     _client: docker.DockerClient
 
@@ -37,6 +42,7 @@ class SystemMonitor:
 
         self.metrics = {}
         self.services = {}
+        self.version = ""
         self.start_time = datetime.now().timestamp()
 
         self._client = client
@@ -56,8 +62,36 @@ class SystemMonitor:
             Timestamp=self.timestamp,
             Status=self.status,
             Error=self.error,
-            Payload=Payload(Metrics=self.metrics, Services=self.services),
+            Extra=self.extra,
+            Payload=Payload(Version=dict(Version(Semantic=self.version)), Metrics=self.metrics, Services=self.services),
         )
+
+    # def set_status (self, status, error: str):
+    #     if status == self.status and error == self.error:
+    #         return
+    #
+    #     if status == "":
+    #         status = "OK"
+    #
+    #     self.status = status
+    #     self.error = error
+    #     if error != "":
+    #         logger.error("Status changed: "+status+ ", err:"+error)
+    #     else:
+    #         logger.info("Status changed: "+status+ ", err:"+error)
+
+    def run_with_stderr (self, cmd):
+        # split cmd to list
+        cmd_list = cmd.split()
+
+        result = subprocess.run(
+            cmd_list,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        return result.stdout.strip()
 
     def update(self):
         """Updates the status of the system"""
@@ -66,14 +100,42 @@ class SystemMonitor:
 
         now = datetime.now()
         metrics = self._get_metrics(now)
+        timestamp = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
-        self.timestamp = now.isoformat()
-        self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
+        #self.timestamp = now.isoformat()
+        self.timestamp = timestamp
+        #self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
+        self.status = updater.get_status_for_ui()
+        self.error = updater.get_error()
         # TODO: What exactly is an error in this context?
-        self.error = ""
+        #self.error = ""
+        #self.extra = get_status_for_ui()
+        #self.extra = "updating"
+        self.extra = updater.get_updating_state_for_ui()
 
         self.metrics = metrics
         self.services = self._get_docker_service_info()
+        self.version = self._get_version()
+
+        logger.info("System status updated.")
+
+    def _get_version(self):
+        # Get current git commit and git tag if available and combine them to a single version string.
+
+        commit = self.run_with_stderr ("git rev-parse HEAD")
+        try:
+            tag = self.run_with_stderr("git describe --tags --exact-match")
+
+            if tag == "":
+                tag = "untagged"
+
+            if tag.find("fatal") > -1:
+                raise Exception(f"Git returned: {tag}")
+
+            return f"{commit} / {tag}"
+        except Exception as e:
+            logger.error(f"An error occurred while fetching the current git tag: {e}, using commit {commit} instead.")
+            return f"{commit} / notag"
 
     def persist(self, status_file_path: str):
         """Persists the status of the system to a file"""
@@ -177,15 +239,20 @@ class SystemMonitor:
         service_info = []
 
         for container in self._client.containers.list():
+            logger.info("Container: %s", container.name)
             container_attrs = container.attrs
             image = container_attrs.get("Image")
             if image is None:
                 image = "(None)"
 
+            cmdConf = ""
+            if container.attrs["Config"]["Cmd"] is not None:
+                cmdConf = " ".join(container.attrs["Config"]["Cmd"])
+
             service_data = {
                 "Name": container.name,
                 "Image": image,
-                "Command": " ".join(container.attrs["Config"]["Cmd"]),
+                "Command": cmdConf,
                 "Environment": self.__get_filtered_env_vars(
                     container.attrs["Config"]["Env"]
                 ),
@@ -203,6 +270,8 @@ class SystemMonitor:
             }
 
             service_info.append(service_data)
+
+        logger.info("Fetching done.")
 
         return service_info
 

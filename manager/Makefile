@@ -1,6 +1,12 @@
 -include .makerc
 export
 
+install_local_mac:
+	@POETRY_VIRTUALENVS_IN_PROJECT=false POETRY_VIRTUALENVS_PATH=./.venvmac poetry install
+
+use_local_mac:
+	@source .venvmac/bin/activate
+
 install:
 	poetry install
 

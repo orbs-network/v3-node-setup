@@ -4,6 +4,14 @@ echo -e "${BLUE}Installing dependencies. Please be patient as this may take seve
 
 UBUNTU_VERSION='22.04'
 
+ln -s $DOCKER_COMPOSE_FILE /opt/orbs/deployment.yml
+
+# Need to explicitly add docker.io registry
+echo "[registries.search]" | sudo tee /etc/containers/registries.conf
+echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
+echo "[registries.insecure]" | sudo tee -a /etc/containers/registries.conf
+echo "registries = ['host.docker.internal:6000']" | sudo tee -a /etc/containers/registries.conf
+
 # TODO: I suspect it is dangerous to run upgrade each time installer script is run
 if [ -f /etc/needrestart/needrestart.conf ]; then
   sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf # disables the restart modal
@@ -22,7 +30,11 @@ sudo apt update -qq
 sudo apt-get install -qq -y software-properties-common podman curl git cron jq > "$redirect" 2>&1
 echo -e "${BLUE}$(podman --version)${NC}"
 # https://docs.docker.com/compose/install/standalone/
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+if [ "$(arch)" == "x86_64" ]; then
+  sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+else
+  sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-linux-aarch64 -o /usr/local/bin/docker-compose
+fi
 sudo chmod +x /usr/local/bin/docker-compose
 echo -e "${BLUE}$(docker-compose --version)${NC}"
 
@@ -43,7 +55,7 @@ else
     sudo sysctl -p
 
     # INSTALL NODE EXPORTER
-    cd $HOME
+    cd $ORBS_ROOT
     NODE_EXPORTER_VERSION="0.18.1"
     curl -L https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz -o node_exporter.tar.gz
     tar xvfz node_exporter.tar.gz && mv node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter .
@@ -56,7 +68,7 @@ Description=Node Exporter
 
 [Service]
 User=$(whoami)
-ExecStart=$HOME/node_exporter --collector.tcpstat
+ExecStart=$ORBS_ROOT/node_exporter --collector.tcpstat
 Restart=always
 StandardOutput=file:/var/log/node_exporter.log
 StandardError=file:/var/log/node_exporter.err.log
@@ -70,6 +82,9 @@ EOF
     sudo systemctl start node_exporter
 
 fi
+
+# Create custom network for containers to be able to address to DNS 172.20.0.1 in nginx as a resolver.
+podman network create --subnet 172.20.0.0/16 custom_network
 
 echo "alias docker=podman" >> ~/.bashrc
 source ~/.bashrc
@@ -101,7 +116,7 @@ else
     echo -e "${GREEN}Pip is already installed!${NC}"
 fi
 
-sudo pip install -r $HOME/setup/requirements.txt
+sudo pip install -r $ORBS_ROOT/setup/requirements.txt
 
 # Install Poetry Python package manager (only temporarily needed for Manager until published as package)
 sudo apt-get install -y python-is-python3
@@ -109,13 +124,9 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" >> ~/.bashrc
 source ~/.bashrc
 # Install Manager dependencies with Poetry (only temporarily needed for Manager until published as package)
-cd $HOME/manager && poetry install && cd $HOME
+cd $ORBS_ROOT/manager && poetry install && cd $ORBS_ROOT
 
 sudo systemctl enable cron
 
-# Need to explicitly add docker.io registry
-echo "[registries.search]" | sudo tee /etc/containers/registries.conf
-echo "registries = ['docker.io']" | sudo tee -a /etc/containers/registries.conf
-
-echo -e "${GREEN}Finished installing dependencies!${NC}"
+#echo -e "${GREEN}Finished installing dependencies!${NC}"
 echo "------------------------------------"

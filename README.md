@@ -58,3 +58,32 @@ From Mac host, run `curl http://localhost/service/ethereum-reader/status`
 #### Healthcheck always shows "starting"
 
 [Podman uses systemd timers to run healtchecks periodically](https://github.com/containers/podman/issues/19326), which do not work in our dev Docker-in-Docker setup. As a workaround, you can run the command [`podman healthcheck run SERVICE`](https://docs.podman.io/en/v4.4/markdown/podman-healthcheck-run.1.html) to manually run a specific container healthcheck.
+
+
+# New version - jordan notes: -
+
+Run locally on MacOS:  
+
+Build the dev guardian image:
+
+```make build_docker_dev```
+
+Run the dev guardian image:
+
+```make run_docker_dev```
+
+Run the installation script after getting docker container prompt:
+
+```source ./orbs-node-on-host/setup/install.sh --skip-req```
+
+Inside the container, playing with docker-compose, make sure to run the dc command, not docker-compose, it's
+an alias to docker-compose with mapping to the right docker-compose-dev.yml if any.
+
+```dc up -d``` for example.
+
+To synchronize changes made by local host to the container (e.g. after modifying a file in the host), run:
+
+```sync```
+
+
+

@@ -1,11 +1,14 @@
 """ Main entry point of the manager """
 
 import docker
-
+import sys
 from config import status_file
 from logger import logger
 from system_monitor import SystemMonitor
+import updater
+from updater import get_guardian_node_id
 from utils import run_command
+from os import getenv
 
 system_monitor = SystemMonitor(client=docker.from_env())
 
@@ -20,7 +23,12 @@ data = {
 def main():
     """Main entry point of the manager"""
 
-    logger.info("Running manager...")
+    cmd = None
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1]
+
+    logger.info(f"Running controller on node [{get_guardian_node_id()}] ...")
+    updater.set_error("")
 
     # TODO - add back when we split into separate repos
     # # Fetch all the tags from the remote repository
@@ -29,18 +37,28 @@ def main():
     # Get the latest tag
     # latest_tag = run_command("git describe --tags $(git rev-list --tags --max-count=1)")
 
-    # hard coded for now
-    latest_tag = "0.0.1"
+    if cmd == "poll":
+        try:
+            updater.compare()
+        except Exception as e:
+            updater.set_error(f"An error occurred while comparing: {e}")
 
-    # upddate manager info
-    if latest_tag and latest_tag != data["currentVersion"]:
-        # checkout_command = f"git checkout {latest_tag}"
-        # run_command(checkout_command)  # checkout the latest tag
-        error = run_command(
-            "docker-compose -f $HOME/deployment/docker-compose.yml up -d"
-        )
-        if error:
-            print("Error running docker-compose")
+
+    if cmd is None:
+        # hard coded for now
+        latest_tag = "0.0.1"
+
+        # upddate manager info
+        if latest_tag and latest_tag != data["currentVersion"]:
+            # checkout_command = f"git checkout {latest_tag}"
+            # run_command(checkout_command)  # checkout the latest tag
+            docker_compose_file = getenv('DOCKER_COMPOSE_FILE')
+
+            error = run_command(
+                f"docker-compose -f {docker_compose_file} up -d"
+            )
+            if error:
+                print("Error running docker-compose")
 
     system_monitor.update()
     system_monitor.persist(status_file)
