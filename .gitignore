@@ -1,6 +1,7 @@
 config.json
 
 *venv
+home/
 node_modules/
 __pycache__/
 ignore
