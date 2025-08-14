@@ -3,7 +3,7 @@
 
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source $SCRIPT_DIR/scripts/base.sh
+
 
 echo -e "${BLUE}
       ██████╗ ██████╗ ██████╗ ███████╗
@@ -14,6 +14,9 @@ echo -e "${BLUE}
        ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
                                        ${NC}"
 
+# env vars (deployment/.env)
+# script directories
+source $SCRIPT_DIR/scripts/base.sh
 # Check minimum machine specs are met
 source $ORBS_ROOT/setup/scripts/validate-min-specs.sh "$@"
 # Install necessary dependencies
