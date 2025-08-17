@@ -44,8 +44,8 @@ jobs:
           curl -f http://localhost/service/ethereum-reader/status
 
       - name: Check manager's status is being served using legacy name (boyar)
-        run: |
-          curl -f http://localhost/service/boyar/status
+        run: | #used to be boyar
+          curl -f http://localhost/service/controller/status
 
       - name: Check manager's status is being served using v4 name
         run: |
