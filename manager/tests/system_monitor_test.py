@@ -1,6 +1,12 @@
 """SystemMonitor class tests"""
 
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+
 from system_monitor import SystemMonitor
+import json
 
 
 def test_get_initial_response(mocker):
