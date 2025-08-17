@@ -3,8 +3,6 @@
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-
 from system_monitor import SystemMonitor
 import json
 
@@ -15,10 +13,6 @@ def test_get_initial_response(mocker):
     system_monitor = SystemMonitor(client=mocker.Mock())
 
     status = system_monitor.get()
-
-    print("--------------------------------")
-    print(json.dumps(status, indent=2))
-    print("--------------------------------")
 
     assert status["Timestamp"] == ""
     assert status["Status"] == ""
