@@ -1,4 +1,4 @@
-""" SystemMonitor class tests """
+"""SystemMonitor class tests"""
 
 from system_monitor import SystemMonitor
 
@@ -9,6 +9,10 @@ def test_get_initial_response(mocker):
     system_monitor = SystemMonitor(client=mocker.Mock())
 
     status = system_monitor.get()
+
+    print("--------------------------------")
+    print(json.dumps(status, indent=2))
+    print("--------------------------------")
 
     assert status["Timestamp"] == ""
     assert status["Status"] == ""
