@@ -1,7 +1,19 @@
+# ---- UPDATE-DESCRIPTOR-BEGIN ----
+# targetNodes:
+#   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: "*"
+# updateResolution: 1440
+# updateMode: immediate
+# updateInAction: false
+# commit: 656fdc20
+# ---- UPDATE-DESCRIPTOR-END ----
+
 services:
   nginx:
     container_name: nginx
     image: nginx:latest
+    #image: fabiocicerchia/nginx-lua:latest
     ports:
       - 80:80
     volumes:
@@ -14,15 +26,18 @@ services:
 
   ethereum-reader:
     container_name: ethereum-reader
-    image: lukerogerson1/management-service:v2.7.1-immediate
+    image: host.docker.internal:6000/management-service:latest
     command: "npm start"
     volumes:
       - /opt/orbs/ethereum-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
     environment:
       - DOCKER_COMPOSE_DESCRIPTOR_URL
       - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
       - ETHEREUM_ENDPOINT
+      - CHAIN=ethereum
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 
@@ -44,10 +59,11 @@ services:
 
   matic-reader:
     container_name: matic-reader
-    image: orbsnetworkstaging/management-service:v2.7.1-immediate
+    image: host.docker.internal:6000/management-service:latest
     command: "npm start"
     volumes:
       - /opt/orbs/matic-reader:/opt/orbs/status
+      - ${DOCKER_COMPOSE_FILE}:/opt/orbs/deployment.yml
     environment:
       - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
       - NODE_ADDRESS
@@ -55,6 +71,8 @@ services:
       - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
       - ETHEREUM_FIRST_BLOCK=21700000
       - ETHEREUM_POLL_INTERVAL_SECONDS=300
+      - CHAIN=polygon
+      - MODE=dev
     healthcheck:
       test: node healthcheck.js || exit 1
 
@@ -99,3 +117,20 @@ services:
     healthcheck:
       # TODO: improve this healthcheck
       test: ping -c 1 logger || exit 1
+
+  vm-l3-dummy-service:
+    container_name: vm-l3-dummy-service
+    image: host.docker.internal:6000/l3-dummy-service:latest
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/vm-l3-dummy-service:/opt/orbs/status
+    environment:
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      # TODO: improve this healthcheck
+      test: ping -c 1 logger || exit 1
+
+networks:
+  default:
+    name: custom_network
+    external: true

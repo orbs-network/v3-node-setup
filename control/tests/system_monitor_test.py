@@ -1,6 +1,10 @@
-""" SystemMonitor class tests """
+"""SystemMonitor class tests"""
+
+import sys
+import os
 
 from system_monitor import SystemMonitor
+import json
 
 
 def test_get_initial_response(mocker):

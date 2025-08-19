@@ -1,6 +1,7 @@
 config.json
 
 *venv
+home/
 node_modules/
 __pycache__/
 home/
@@ -9,3 +10,5 @@ uv.sh
 
 .env
 log.txt
+registry-data
+node_exporter*

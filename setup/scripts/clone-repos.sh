@@ -6,17 +6,15 @@
 # # TODO: this is the wrong repo
 # git clone https://github.com/orbs-network/v3-deployment.git deployment
 # # Disable detached head warning. This is fine as we are checking out tags
-# cd $HOMEdeployment && git config advice.detachedHead false && cd ..
+# cd $ORBS_ROOTdeployment && git config advice.detachedHead false && cd ..
 
 # echo -e "${GREEN}Node deployment files downloaded!${NC}"
 # echo "------------------------------------"
 
-## ---- DEPRECATED ---- ALL In One Repo
-
-# # ----- CLONE CONTROL -----
-# echo -e "${BLUE}Downloading node control...${NC}"
-# git clone https://github.com/orbs-network/v3-node-control.git control
-# cd $HOME/control && git config advice.detachedHead false && cd ..
+# # ----- CLONE MANAGER -----
+# echo -e "${BLUE}Downloading node manager...${NC}"
+# git clone https://github.com/orbs-network/v3-node-manager.git manager
+# cd $HOMEmanager && git config advice.detachedHead false && cd ..
 
 # echo -e "${GREEN}Node control downloaded!${NC}"
 # echo "------------------------------------"
