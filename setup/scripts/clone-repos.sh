@@ -11,7 +11,7 @@
 # echo -e "${GREEN}Node deployment files downloaded!${NC}"
 # echo "------------------------------------"
 
-# # ----- CLONE MANAGER -----
+# # ----- CLONE CONTROL/MANAGER -----
 # echo -e "${BLUE}Downloading node manager...${NC}"
 # git clone https://github.com/orbs-network/v3-node-manager.git manager
 # cd $HOMEmanager && git config advice.detachedHead false && cd ..

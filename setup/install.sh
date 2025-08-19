@@ -21,8 +21,8 @@ source $SCRIPT_DIR/scripts/base.sh
 source $ORBS_ROOT/setup/scripts/validate-min-specs.sh "$@"
 # Install necessary dependencies
 source $ORBS_ROOT/setup/scripts/install-dependencies.sh "$@"
-# Download required node repositories
-source $ORBS_ROOT/setup/scripts/clone-repos.sh "$@"
+# Download required node repositories - aftre splitted to different repos?
+# source $ORBS_ROOT/setup/scripts/clone-repos.sh "$@"
 # Generate node address keys
 source $ORBS_ROOT/setup/scripts/handle-node-address.sh "$@"
 # Collect Guardian details
