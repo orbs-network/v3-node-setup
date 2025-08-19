@@ -1,7 +1,6 @@
 """
-Various helper functions used in the node manager
+Various helper functions used in the node control
 """
-
 
 import select
 import subprocess

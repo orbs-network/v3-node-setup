@@ -35,7 +35,7 @@ RUN echo 'alias ew-exec="docker-compose -f /home/ubuntu/deployment/docker-compos
 RUN echo 'alias s-exec="docker-compose -f /home/ubuntu/deployment/docker-compose.yml exec signer sh"' >> ~/.bashrc
 
 COPY --chown=ubuntu:ubuntu setup setup
-COPY --chown=ubuntu:ubuntu manager manager
+COPY --chown=ubuntu:ubuntu control control
 COPY --chown=ubuntu:ubuntu deployment deployment
 COPY --chown=ubuntu:ubuntu logging logging
 

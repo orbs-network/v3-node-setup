@@ -6,13 +6,13 @@
 
 ## What's this?
 
-This repo is temporarily being used to hold all the Orbs v3 node validator install, manager and deployment files. In the future, they will be split into different repos
+This repo is temporarily being used to hold all the Orbs v3 node validator install, control and deployment files. In the future, they will be split into different repos
 
 ## Folders
 
-- `deployment` - Manifest files. These will eventually live at https://github.com/orbs-network/v3-deployment
-- `manager` - Validator Python manager. These files will eventually live at https://github.com/orbs-network/v3-node-manager
-- `setup` - Install scripts. These files will eventually live by themselves in this current repo (https://github.com/orbs-network/v3-node-setup)
+- `deployment` - Manifest files. 
+- `control` - Validator Python control (manager) which replaced boyar. 
+- `setup` - Install scripts. 
 - `logging` - A service to expose container logs. These files will also live elsewhere in the future TBD
 
 ## Developing
@@ -24,7 +24,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
       docker run \
          -v $(pwd)/deployment:/home/ubuntu/deployment \
          -v $(pwd)/logging:/home/ubuntu/logging \
-         -v $(pwd)/manager:/home/ubuntu/manager \
+         -v $(pwd)/control:/home/ubuntu/control \
          -v $(pwd)/setup:/home/ubuntu/setup \
          -p 80:80 --rm -it --privileged test-ubuntu
    ```

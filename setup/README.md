@@ -9,4 +9,4 @@ Install scripts and related files for setting up a Orbs v3 validator node
 - installs prereqs
 - generates node address - or prompts for one
 - produces node.env file 
-- starts the manager
+- starts the control module

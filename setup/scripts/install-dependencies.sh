@@ -103,13 +103,13 @@ fi
 
 sudo pip install -r $HOME/setup/requirements.txt
 
-# Install Poetry Python package manager (only temporarily needed for Manager until published as package)
+# Install Poetry Python package mancontrolager (should control be until published as package?)
 sudo apt-get install -y python-is-python3
 curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" >> ~/.bashrc
 source ~/.bashrc
-# Install Manager dependencies with Poetry (only temporarily needed for Manager until published as package)
-cd $HOME/manager && poetry install && cd $HOME
+# Install Control dependencies with Poetry (only temporarily needed for Control until published as package)
+cd $HOME/control && poetry install && cd $HOME
 
 sudo systemctl enable cron
 

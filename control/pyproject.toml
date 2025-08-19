@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "manager"
+name = "control"
 version = "0.1.0"
-description = "Python manager for Orbs v4 node validator"
+description = "Python control for Orbs v4 node validator"
 authors = ["Luke Rogerson <luke@orbs.com>"]
 readme = "README.md"
 

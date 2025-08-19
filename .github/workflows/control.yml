@@ -1,4 +1,4 @@
-name: Manager validation
+name: Control Validation
 
 on:
   pull_request:
@@ -24,8 +24,8 @@ jobs:
       - name: Install dependencies with Poetry
         run: |
           poetry install --no-interaction
-        working-directory: manager
+        working-directory: control
 
       - name: Run pytest
         run: make test
-        working-directory: manager
+        working-directory: control

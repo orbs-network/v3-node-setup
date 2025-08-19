@@ -1,10 +1,10 @@
-# v3-node-manager repo
+# v3-node-control repo
 
 WIP
 
 ## What's this?
 
-Python manager for Orbs v3 node validator
+Python control for Orbs v3 node validator
 
 ### What does it do?
 

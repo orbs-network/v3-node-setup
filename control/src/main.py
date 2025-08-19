@@ -1,4 +1,4 @@
-""" Main entry point of the manager """
+"""Main entry point of the control"""
 
 import docker
 
@@ -18,9 +18,9 @@ data = {
 
 
 def main():
-    """Main entry point of the manager"""
+    """Main entry point of the control"""
 
-    logger.info("Running manager...")
+    logger.info("Running control...")
 
     # TODO - add back when we split into separate repos
     # # Fetch all the tags from the remote repository
@@ -32,13 +32,11 @@ def main():
     # hard coded for now
     latest_tag = "0.0.1"
 
-    # upddate manager info
+    # upddate control info
     if latest_tag and latest_tag != data["currentVersion"]:
         # checkout_command = f"git checkout {latest_tag}"
         # run_command(checkout_command)  # checkout the latest tag
-        error = run_command(
-            "docker-compose -f $HOME/deployment/docker-compose.yml up -d"
-        )
+        error = run_command("docker-compose -f $HOME/deployment/docker-compose.yml up -d")
         if error:
             print("Error running docker-compose")
 

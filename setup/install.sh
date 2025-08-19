@@ -21,9 +21,9 @@ source $HOME/setup/scripts/clone-repos.sh "$@"
 source $HOME/setup/scripts/handle-node-address.sh "$@"
 # Collect Guardian details
 source $HOME/setup/scripts/handle-guardian-info.sh "$@"
-# Generate env files needed for manager
+# Generate env files needed for control
 source $HOME/setup/scripts/generate-env-files.sh "$@"
-# Setup manager
-source $HOME/setup/scripts/setup-manager.sh "$@"
+# Setup control
+source $HOME/setup/scripts/setup-control.sh "$@"
 # Perform final health check
 source $HOME/setup/scripts/health-check.sh "$@"
