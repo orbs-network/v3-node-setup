@@ -21,7 +21,7 @@ data = {
 
 
 def main():
-    """Main entry point of the manager"""
+    """Main entry point of the control module"""
 
     cmd = None
     if len(sys.argv) > 1:

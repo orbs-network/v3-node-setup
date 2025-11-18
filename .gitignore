@@ -12,3 +12,5 @@ uv.sh
 log.txt
 registry-data
 node_exporter*
+
+**/.DS_Store

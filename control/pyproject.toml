@@ -5,6 +5,7 @@ description = "Python control for Orbs v4 node validator"
 authors = ["Luke Rogerson <luke@orbs.com>"]
 readme = "README.md"
 
+
 [tool.poetry.dependencies]
 python = "^3.10"
 psutil = "^5.9.5"

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Upgrade Flow</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .title {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 40px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .step {
+      background: linear-gradient(145deg, #ffffff, #f8f9fa);
+      border-radius: 15px;
+      padding: 20px;
+      min-width: 300px;
+      max-width: 600px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      border-left: 5px solid;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .step:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .step.snapshot {
+      border-left-color: #3498db;
+    }
+
+    .step.voting {
+      border-left-color: #2ecc71;
+    }
+
+    .step.decision {
+      border-left-color: #f39c12;
+    }
+
+    .step.reality {
+      border-left-color: #e74c3c;
+    }
+
+    .step.execution {
+      border-left-color: #9b59b6;
+    }
+
+    .step.contract {
+      border-left-color: #1abc9c;
+    }
+
+    .step.validators {
+      border-left-color: #34495e;
+    }
+
+    .step-title {
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+
+    .step-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #5a6c7d;
+    }
+
+    .step-detail {
+      background: rgba(52, 152, 219, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-style: italic;
+      font-size: 13px;
+    }
+
+    .arrow {
+      font-size: 30px;
+      color: #3498db;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .branch {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .branch-item {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .decision-point {
+      background: linear-gradient(145deg, #fff3cd, #ffeaa7);
+      border: 2px solid #f39c12;
+      border-radius: 20px;
+      padding: 15px;
+      text-align: center;
+      font-weight: 600;
+      color: #e67e22;
+    }
+
+    .actors {
+      background: rgba(155, 89, 182, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .actors-title {
+      font-weight: 700;
+      color: #8e44ad;
+      margin-bottom: 10px;
+    }
+
+    .actor {
+      display: inline-block;
+      background: #9b59b6;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin: 3px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .timeline {
+      position: absolute;
+      left: -30px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(to bottom, #3498db, #9b59b6);
+      border-radius: 2px;
+    }
+
+    .step-number {
+      position: absolute;
+      left: -45px;
+      top: 20px;
+      width: 30px;
+      height: 30px;
+      background: #3498db;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .branch {
+        flex-direction: column;
+      }
+
+      .step {
+        min-width: 250px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="title">🔄 Network Upgrade Flow: OIP → SafeSnap → Validator Updates</h1>
+
+    <div class="actors">
+      <div class="actors-title">Key Actors in the Flow:</div>
+      <span class="actor">Guardians (Validators)</span>
+      <span class="actor">Reality.eth Oracle</span>
+      <span class="actor">SafeSnap Module</span>
+      <span class="actor">NetworkUpgrade Contract</span>
+      <span class="actor">Community Members</span>
+    </div>
+
+    <div class="flow-container">
+      <div class="step snapshot">
+        <div class="timeline"></div>
+        <div class="step-number">1</div>
+        <div class="step-title">🗳️ OIP Creation on Snapshot</div>
+        <div class="step-content">
+          A Guardian creates a new OIP (Network Upgrade Proposal) on your existing Snapshot space
+          <div class="step-detail">
+            <strong>Includes:</strong> New commit hash + transaction payload for updateCommitHash(newHash)
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step voting">
+        <div class="step-number">2</div>
+        <div class="step-title">🏛️ Guardian Voting</div>
+        <div class="step-content">
+          All 20 Guardians (validators) vote on the OIP using Snapshot's gasless voting
+          <div class="step-detail">
+            <strong>Voting Power:</strong> Based on your existing stake/token holdings
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="decision-point">
+        <strong>❓ Does OIP Pass?</strong><br>
+        Based on your governance thresholds
+      </div>
+
+      <div class="branch">
+        <div class="branch-item">
+          <div class="step decision">
+            <div class="step-title">❌ OIP Rejected</div>
+            <div class="step-content">
+              Proposal fails - no on-chain action taken
+            </div>
+          </div>
+        </div>
+        <div class="branch-item">
+          <div class="step reality">
+            <div class="step-number">3</div>
+            <div class="step-title">🔮 Reality.eth Oracle Activation</div>
+            <div class="step-content">
+              SafeSnap automatically creates a Reality.eth question:
+              <div class="step-detail">
+                <strong>Question:</strong> "Did OIP-X pass on Snapshot with payload updateCommitHash('abc123')?"<br>
+                <strong>Bond Required:</strong> Using your governance token
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step reality">
+        <div class="step-number">4</div>
+        <div class="step-title">⏰ 24-Hour Challenge Period</div>
+        <div class="step-content">
+          Community can dispute the Reality.eth question if they believe it's incorrect
+          <div class="step-detail">
+            <strong>Security:</strong> Escalation game prevents manipulation through economic incentives
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="decision-point">
+        <strong>⚖️ Any Disputes?</strong>
+      </div>
+
+      <div class="branch">
+        <div class="branch-item">
+          <div class="step reality">
+            <div class="step-title">🎯 Dispute Resolution</div>
+            <div class="step-content">
+              Reality.eth escalation game resolves disputes through community consensus
+            </div>
+          </div>
+        </div>
+        <div class="branch-item">
+          <div class="step execution">
+            <div class="step-number">5</div>
+            <div class="step-title">✅ Reality.eth Confirmation</div>
+            <div class="step-content">
+              Oracle confirms OIP outcome is correct - ready for execution
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step execution">
+        <div class="step-number">6</div>
+        <div class="step-title">🚀 Permissionless Execution</div>
+        <div class="step-content">
+          <strong>Anyone</strong> can now call execute() on the SafeSnap module
+          <div class="step-detail">
+            <strong>Tx Sender:</strong> Any community member (permissionless)<br>
+            <strong>Gas Cost:</strong> Paid by the executor
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step contract">
+        <div class="step-number">7</div>
+        <div class="step-title">📜 Smart Contract Update</div>
+        <div class="step-content">
+          SafeSnap module calls NetworkUpgrade.updateCommitHash(newHash)
+          <div class="step-detail">
+            <strong>State Change:</strong> currentCommitHash = newHash<br>
+            <strong>Event Emitted:</strong> CommitHashUpdated(newHash)
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step validators">
+        <div class="step-number">8</div>
+        <div class="step-title">👁️ Validator Monitoring</div>
+        <div class="step-content">
+          All 20 validator nodes detect the CommitHashUpdated event through blockchain monitoring
+          <div class="step-detail">
+            <strong>Technology:</strong> Web3 event listeners or polling mechanisms
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step validators">
+        <div class="step-number">9</div>
+        <div class="step-title">⬇️ Automated Download</div>
+        <div class="step-content">
+          Each validator automatically downloads docker-compose.yml from GitHub using the new commit hash
+          <div class="step-detail">
+            <strong>URL:</strong> https://raw.githubusercontent.com/your-repo/{commitHash}/docker-compose.yml
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">⬇️</div>
+
+      <div class="step validators">
+        <div class="step-number">10</div>
+        <div class="step-title">🔄 Network Protocol Update</div>
+        <div class="step-content">
+          Validators restart their nodes with the new protocol version
+          <div class="step-detail">
+            <strong>Process:</strong> docker-compose down && docker-compose up<br>
+            <strong>Result:</strong> Network-wide protocol upgrade completed
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      style="margin-top: 40px; padding: 20px; background: rgba(46, 204, 113, 0.1); border-radius: 15px; text-align: center;">
+      <h3 style="color: #27ae60; margin-bottom: 10px;">🎉 Upgrade Complete!</h3>
+      <p style="color: #2c3e50; margin: 0;">All validators are now running the new protocol version specified in the OIP
+      </p>
+    </div>
+  </div>
+</body>
+
+</html>

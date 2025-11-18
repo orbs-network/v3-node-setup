@@ -14,7 +14,7 @@ echo -e "${BLUE}
        ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
                                        ${NC}"
 
-# env vars (deployment/.env)
+# env vars (ORBS_ROOT/.env)
 # script directories
 source $SCRIPT_DIR/scripts/base.sh
 # Check minimum machine specs are met
@@ -26,9 +26,9 @@ source $ORBS_ROOT/setup/scripts/install-dependencies.sh "$@"
 # Generate node address keys
 source $ORBS_ROOT/setup/scripts/handle-node-address.sh "$@"
 # Collect Guardian details
-source $HOME/setup/scripts/handle-guardian-info.sh "$@"
+source $ORBS_ROOT/setup/scripts/handle-guardian-info.sh "$@"
 # Generate env files needed for control
-source $HOME/setup/scripts/generate-env-files.sh "$@"
+source $ORBS_ROOT/setup/scripts/generate-env-files.sh "$@"
 
 # Generate env files needed for control
 source $ORBS_ROOT/setup/scripts/generate-env-files.sh "$@"
