@@ -26,10 +26,10 @@ updateTargetTime = 0
 
 
 def get_updating_state_for_ui():
-    global isInUpdatingState
+    global isInUpdatingState, updateTargetTime
 
     if isInUpdatingState:
-        return '{"status": "updating", "time": ' + updateTargetTime + "}"
+        return '{"status": "updating", "time": ' + str(updateTargetTime) + "}"
     else:
         return ""
     # return "updating" if isInUpdatingState else ""
@@ -255,7 +255,7 @@ def compare():
         updateResolution = metadata.get("updateResolution", 1440)
         logger.info(f"Update resolution: {updateResolution} minutes")
         timeToUpdate = get_my_update_schedule_window_time(updateResolution, scheduled_commit_hash)
-        updateTargetTime = timeToUpdate.strftime("%s")
+        updateTargetTime = int(timeToUpdate.timestamp())
 
         set_status_for_ui(f"Update scheduled for {timeToUpdate}")
 
