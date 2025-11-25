@@ -2,6 +2,7 @@ config.json
 
 *venv
 home/
+docs/
 node_modules/
 __pycache__/
 home/
