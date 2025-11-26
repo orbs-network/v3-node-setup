@@ -17,6 +17,6 @@ Python control for Orbs v3 node validator
 
 ## Developing
 
-1. `make install` will install dependencies
-2. `make shell` will activate virtual environment
+1. `make shell` will activate virtual environment
+2. `make install` will install dependencies
 3. `make test` runs unit tests

@@ -3,8 +3,7 @@
 import sys
 import os
 
-from system_monitor import SystemMonitor
-import json
+from src.system_monitor import SystemMonitor
 
 
 def test_get_initial_response(mocker):
