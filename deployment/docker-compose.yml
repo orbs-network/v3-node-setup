@@ -75,6 +75,17 @@ services:
     healthcheck:
       test: node healthcheck.js || exit 1
 
+  vm-lambda:
+    container_name: vm-lambda
+    image: orbsnetworkstaging/vm-lambda:v0.0.41-immediate
+    volumes:
+      - $PODMAN_SOCKET_PATH:/var/run/docker.sock
+      - /opt/orbs/vm-lambda:/opt/orbs/status
+    environment:
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
   signer:
     container_name: signer
     image: orbsnetworkstaging/signer:v2.6.1-immediate
