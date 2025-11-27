@@ -1,14 +1,16 @@
 [tool.poetry]
-name = "manager"
+name = "control"
 version = "0.1.0"
-description = "Python manager for Orbs v4 node validator"
+description = "Python control for Orbs v4 node validator"
 authors = ["Luke Rogerson <luke@orbs.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
 psutil = "^5.9.5"
 docker = "^6.1.3"
+pyyaml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"

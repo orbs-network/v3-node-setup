@@ -6,13 +6,13 @@
 
 ## What's this?
 
-This repo is temporarily being used to hold all the Orbs v3 node validator install, manager and deployment files. In the future, they will be split into different repos
+This repo is temporarily being used to hold all the Orbs v3 node validator install, control and deployment files. In the future, they will be split into different repos
 
 ## Folders
 
-- `deployment` - Manifest files. These will eventually live at https://github.com/orbs-network/v3-deployment
-- `manager` - Validator Python manager. These files will eventually live at https://github.com/orbs-network/v3-node-manager
-- `setup` - Install scripts. These files will eventually live by themselves in this current repo (https://github.com/orbs-network/v3-node-setup)
+- `deployment` - Manifest files. 
+- `control` - Validator Python control (manager) which replaced boyar. 
+- `setup` - Install scripts. 
 - `logging` - A service to expose container logs. These files will also live elsewhere in the future TBD
 
 ## Developing
@@ -24,7 +24,7 @@ This repo is temporarily being used to hold all the Orbs v3 node validator insta
       docker run \
          -v $(pwd)/deployment:/home/ubuntu/deployment \
          -v $(pwd)/logging:/home/ubuntu/logging \
-         -v $(pwd)/manager:/home/ubuntu/manager \
+         -v $(pwd)/control:/home/ubuntu/control \
          -v $(pwd)/setup:/home/ubuntu/setup \
          -p 80:80 --rm -it --privileged test-ubuntu
    ```
@@ -58,3 +58,32 @@ From Mac host, run `curl http://localhost/service/ethereum-reader/status`
 #### Healthcheck always shows "starting"
 
 [Podman uses systemd timers to run healtchecks periodically](https://github.com/containers/podman/issues/19326), which do not work in our dev Docker-in-Docker setup. As a workaround, you can run the command [`podman healthcheck run SERVICE`](https://docs.podman.io/en/v4.4/markdown/podman-healthcheck-run.1.html) to manually run a specific container healthcheck.
+
+
+# New version - jordan notes: -
+
+Run locally on MacOS:  
+
+Build the dev guardian image:
+
+```make build_docker_dev```
+
+Run the dev guardian image:
+
+```make run_docker_dev```
+
+Run the installation script after getting docker container prompt:
+
+```source ./orbs-node-on-host/setup/install.sh --skip-req```
+
+Inside the container, playing with docker-compose, make sure to run the dc command, not docker-compose, it's
+an alias to docker-compose with mapping to the right docker-compose-dev.yml if any.
+
+```dc up -d``` for example.
+
+To synchronize changes made by local host to the container (e.g. after modifying a file in the host), run:
+
+```sync```
+
+
+

@@ -1,6 +1,9 @@
 #!/bin/bash
+#set -x
 
-source $HOME/setup/scripts/base.sh
+export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+
 
 echo -e "${BLUE}
       ██████╗ ██████╗ ██████╗ ███████╗
@@ -11,19 +14,33 @@ echo -e "${BLUE}
        ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝
                                        ${NC}"
 
+# env vars (ORBS_ROOT/.env)
+# script directories
+source $SCRIPT_DIR/scripts/base.sh
 # Check minimum machine specs are met
-source $HOME/setup/scripts/validate-min-specs.sh "$@"
+source $ORBS_ROOT/setup/scripts/validate-min-specs.sh "$@"
 # Install necessary dependencies
-source $HOME/setup/scripts/install-dependencies.sh "$@"
-# Download required node repositories
-source $HOME/setup/scripts/clone-repos.sh "$@"
+source $ORBS_ROOT/setup/scripts/install-dependencies.sh "$@"
+# Download required node repositories - aftre splitted to different repos?
+# source $ORBS_ROOT/setup/scripts/clone-repos.sh "$@"
 # Generate node address keys
-source $HOME/setup/scripts/handle-node-address.sh "$@"
+source $ORBS_ROOT/setup/scripts/handle-node-address.sh "$@"
 # Collect Guardian details
-source $HOME/setup/scripts/handle-guardian-info.sh "$@"
-# Generate env files needed for manager
-source $HOME/setup/scripts/generate-env-files.sh "$@"
-# Setup manager
-source $HOME/setup/scripts/setup-manager.sh "$@"
+source $ORBS_ROOT/setup/scripts/handle-guardian-info.sh "$@"
+# Generate env files needed for control
+source $ORBS_ROOT/setup/scripts/generate-env-files.sh "$@"
+
+# Generate env files needed for control
+source $ORBS_ROOT/setup/scripts/generate-env-files.sh "$@"
+
+set -a  # Automatically export all variables
+source $ORBS_ROOT/deployment/.env
+set +a
+
+# Setup control
+source $ORBS_ROOT/setup/scripts/setup-control.sh "$@"
+
 # Perform final health check
-source $HOME/setup/scripts/health-check.sh "$@"
+source $ORBS_ROOT/setup/scripts/health-check.sh "$@"
+
+

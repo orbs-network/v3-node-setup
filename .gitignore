@@ -1,10 +1,17 @@
 config.json
 
 *venv
+home/
+docs/
 node_modules/
 __pycache__/
+home/
 ignore
 uv.sh
 
 .env
 log.txt
+registry-data
+node_exporter*
+
+**/.DS_Store

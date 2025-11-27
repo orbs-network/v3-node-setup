@@ -41,7 +41,7 @@
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
     },
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "isort.args": [
       "--profile",
       "black"

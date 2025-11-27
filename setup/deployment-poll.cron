@@ -1,1 +1,2 @@
-* * * * * cd $HOME/deployment && python3 $HOME/manager/src/manager.py
+* * * * * bash -c 'set -a; source $ORBS_ROOT/deployment/.env; set +a; cd $ORBS_ROOT/deployment && $ORBS_ROOT/control/.venv/bin/python3 $ORBS_ROOT/control/src/main.py poll >> /tmp/control.out 2>&1'
+# new line is necessary

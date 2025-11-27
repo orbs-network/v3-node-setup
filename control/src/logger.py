@@ -1,4 +1,4 @@
-"""Logger module for the manager service. Outputs both to stdout and a log file."""
+"""Logger module for the control service. Outputs both to stdout and a log file."""
 
 import logging
 

@@ -1,14 +1,13 @@
 #!/bin/bash
 
 check_services() {
-  compose_file="$HOME/deployment/docker-compose.yml"
   # Get the number of services defined in docker-compose file
-  num_services=$(docker-compose -f $compose_file config --services | wc -l)
+  num_services=$(docker-compose -f $DOCKER_COMPOSE_FILE config --services | wc -l)
 
   for i in {1..5}
   do
     # Get the number of services that are up
-    num_up=$(docker-compose -f $compose_file ps | grep "Up" | wc -l)
+    num_up=$(docker-compose -f $DOCKER_COMPOSE_FILE ps | grep "Up" | wc -l)
     if [ $num_up -eq $num_services ]; then
       echo "All services are up and running."
       return 0
@@ -26,9 +25,20 @@ if check_services; then
   if [ $mgmt_svs_status_code -eq 200 ]; then
       echo -e "${GREEN}Installation complete! 🚀🚀🚀${NC}"
       echo "------------------------------------"
-      echo -e "\n👉👉👉 ${YELLOW}Please register your Guardian using the following website: https://guardians.orbs.network?name=$name&website=$website&ip=$myip&node_address=$public_add ${NC} 👈👈👈\n" # TODO: only show once - during first installation
+      echo -e "👉👉👉 ${YELLOW}Please register your Guardian using:"
+      echo -e "website: https://guardians.orbs.network?name=$name&website=$website&ip=$myip&node_address=$public_add=${NC}" 
+      echo -e "👈👈👈"
+      echo -e "name: $name"
+      echo -e "node_address: $public_add"
+      echo -e "website: $website"
+      echo -e "ip: $myip"                
+      echo -e "------------------------------------"      
   else
       echo -e "${RED}Installation incomplete!${NC}"
+      #
+      echo -e "Please check the logs for more information."
+      # todo: add logs path
+      echo -e "------------------------------------"
   fi
 else
   echo -e "${RED}Installation incomplete!${NC}"
