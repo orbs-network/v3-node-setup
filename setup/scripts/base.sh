@@ -32,7 +32,8 @@ fi
 if [ "$RUNNING_IN_DOCKER" = "true" ]; then
  echo -e "${YELLOW} Running in Docker container ! ${NC}"
 
- export ORBS_ROOT=$HOME/orbs-node
+ export ORBS_ROOT=${ORBS_ROOT:-$HOME/orbs-node} # if ORBS_ROOT is set, use it, otherwise use default mapped to host directory
+ echo -e "${BLUE} ORBS_ROOT: $ORBS_ROOT ${NC}"
  git clone $HOME/orbs-node-on-host $ORBS_ROOT
  rsync -aq --progress --exclude='.venv' --exclude='.git' $HOME/orbs-node-on-host/ $ORBS_ROOT
 else

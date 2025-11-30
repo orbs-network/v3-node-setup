@@ -4,7 +4,7 @@ registry:
 	docker run -d -p 6000:5000 -v $$(realpath registry-data):/var/lib/registry --name local-registry registry:2
 
 build_docker_dev:
-	@docker buildx build --platform linux/arm64 -t test-ubuntu_arm64 .
+	@docker buildx build --platform linux/arm64 -f local-dev.Dockerfile -t test-ubuntu_arm64 .
 
 run_docker_dev:
 	@if [ -n "$(vol)" ]; then \

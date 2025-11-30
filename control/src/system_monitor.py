@@ -1,8 +1,8 @@
-""" A helper class for getting system metrics and status. """
+"""A helper class for getting system metrics and status."""
 
 import subprocess
 import json
-import os
+import subprocess
 from datetime import datetime
 
 import docker
@@ -11,6 +11,7 @@ import updater
 
 from logger import logger
 from system_monitor_types import Payload, Status, Version
+from updater import get_error, get_status_for_ui, get_updating_state_for_ui
 
 
 class SystemMonitor:
@@ -47,10 +48,10 @@ class SystemMonitor:
 
         self._client = client
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__dump_json()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__dump_json()
 
     def get(self) -> Status:
@@ -63,7 +64,11 @@ class SystemMonitor:
             Status=self.status,
             Error=self.error,
             Extra=self.extra,
-            Payload=Payload(Version=dict(Version(Semantic=self.version)), Metrics=self.metrics, Services=self.services),
+            Payload=Payload(
+                Version=Version(Semantic=self.version),
+                Metrics=self.metrics,
+                Services=self.services,
+            ),
         )
 
     # def set_status (self, status, error: str):
@@ -80,38 +85,33 @@ class SystemMonitor:
     #     else:
     #         logger.info("Status changed: "+status+ ", err:"+error)
 
-    def run_with_stderr (self, cmd):
+    def run_with_stderr(self, cmd: str) -> str:
         # split cmd to list
         cmd_list = cmd.split()
 
-        result = subprocess.run(
-            cmd_list,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
+        result = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         return result.stdout.strip()
 
-    def update(self):
+    def update(self) -> None:
         """Updates the status of the system"""
 
         logger.info("Updating system metrics and services info")
 
         now = datetime.now()
         metrics = self._get_metrics(now)
-        timestamp = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
-        #self.timestamp = now.isoformat()
+        # self.timestamp = now.isoformat()
         self.timestamp = timestamp
-        #self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
-        self.status = updater.get_status_for_ui()
-        self.error = updater.get_error()
+        # self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
+        self.status = get_status_for_ui()
+        self.error = get_error()
         # TODO: What exactly is an error in this context?
-        #self.error = ""
-        #self.extra = get_status_for_ui()
-        #self.extra = "updating"
-        self.extra = updater.get_updating_state_for_ui()
+        # self.error = ""
+        # self.extra = get_status_for_ui()
+        # self.extra = "updating"
+        self.extra = get_updating_state_for_ui()
 
         self.metrics = metrics
         self.services = self._get_docker_service_info()
@@ -119,10 +119,10 @@ class SystemMonitor:
 
         logger.info("System status updated.")
 
-    def _get_version(self):
+    def _get_version(self) -> str:
         # Get current git commit and git tag if available and combine them to a single version string.
 
-        commit = self.run_with_stderr ("git rev-parse HEAD")
+        commit = self.run_with_stderr("git rev-parse HEAD")
         try:
             tag = self.run_with_stderr("git describe --tags --exact-match")
 
@@ -137,7 +137,7 @@ class SystemMonitor:
             logger.error(f"An error occurred while fetching the current git tag: {e}, using commit {commit} instead.")
             return f"{commit} / notag"
 
-    def persist(self, status_file_path: str):
+    def persist(self, status_file_path: str) -> None:
         """Persists the status of the system to a file"""
 
         logger.info("Persisting system status to file: %s", status_file_path)
@@ -206,18 +206,14 @@ class SystemMonitor:
 
         for proc in psutil.process_iter(["pid", "name", "cmdline", "memory_info"]):
             if proc.ppid() == 1:  # Only include parent processes
-                memory_used_mb = ""
+                memory_used_mb = 0.0
                 if proc.info["memory_info"] is not None:
-                    memory_used_mb = self.__convert_bytes_to_mbytes(
-                        proc.info["memory_info"].rss
-                    )
+                    memory_used_mb = self.__convert_bytes_to_mbytes(proc.info["memory_info"].rss)
 
                 cmd_line = ""
                 if proc.info["cmdline"] is not None:
                     cmd_line = " ".join(proc.info["cmdline"])
-                    cmd_line = (
-                        (cmd_line[:75] + "...") if len(cmd_line) > 75 else cmd_line
-                    )
+                    cmd_line = (cmd_line[:75] + "...") if len(cmd_line) > 75 else cmd_line
 
                 process_data = {
                     "Name": proc.info["name"],
@@ -253,9 +249,7 @@ class SystemMonitor:
                 "Name": container.name,
                 "Image": image,
                 "Command": cmdConf,
-                "Environment": self.__get_filtered_env_vars(
-                    container.attrs["Config"]["Env"]
-                ),
+                "Environment": self.__get_filtered_env_vars(container.attrs["Config"]["Env"]),
                 "CreatedAt": container_attrs["Created"],
                 "ExitedAt": container_attrs["State"]["FinishedAt"],
                 "Status": container_attrs["State"]["Status"],
@@ -277,10 +271,7 @@ class SystemMonitor:
 
     def __is_not_blacklisted(self, env_var: str) -> bool:
         """Returns True if the environment variable is not blacklisted"""
-        return not any(
-            blacklisted in env_var
-            for blacklisted in ["ETHEREUM_ENDPOINT", "KEY", "SECRET", "PRIVATE_KEY"]
-        )
+        return not any(blacklisted in env_var for blacklisted in ["ETHEREUM_ENDPOINT", "KEY", "SECRET", "PRIVATE_KEY"])
 
     def __get_filtered_env_vars(self, env_vars: list[str]) -> list[str]:
         """Returns a list of environment variables with sensitive information removed"""
@@ -290,6 +281,6 @@ class SystemMonitor:
         """Converts bytes to megabytes"""
         return round(_bytes / 1024 / 1024, 6)
 
-    def __dump_json(self):
+    def __dump_json(self) -> str:
         """Returns a pretty-printed string representation of the status object"""
         return json.dumps(self.get(), indent=4)

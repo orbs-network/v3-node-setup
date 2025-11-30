@@ -1,7 +1,17 @@
-from typing import TypedDict
+from typing import Any, Dict, TypedDict
+
 
 class Version(TypedDict):
     Semantic: str
+
+
+class Payload(TypedDict):
+    """Further breakdown of the status object"""
+
+    Version: Version
+    Metrics: Dict[str, Any]
+    Services: Dict[str, Any]
+
 
 class Status(TypedDict):
     """Corresponds to v2 status object"""
@@ -9,12 +19,5 @@ class Status(TypedDict):
     Timestamp: str
     Status: str
     Error: str
-    Extra : str
-    Payload: dict
-
-
-class Payload(TypedDict):
-    """Further breakdown of the status object"""
-    Version : dict
-    Metrics: dict
-    Services: dict
+    Extra: str
+    Payload: Payload

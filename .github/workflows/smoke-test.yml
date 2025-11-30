@@ -29,7 +29,7 @@ jobs:
         env:
           ETH_ENDPOINT: ${{ secrets.ETH_ENDPOINT }}
         run: |
-          docker run -d -p 80:80 -e ETH_ENDPOINT=$ETH_ENDPOINT --privileged --name smoke_test test-ubuntu tail -f /dev/null
+          docker run -d -p 80:80 -e ETH_ENDPOINT=$ETH_ENDPOINT -e ORBS_ROOT="/home/ubuntu" --privileged --name smoke_test test-ubuntu tail -f /dev/null
 
       - name: Run install script
         run: |
