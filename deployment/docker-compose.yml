@@ -42,42 +42,44 @@ services:
     healthcheck:
       test: node healthcheck.js || exit 1
 
-  matic-reader:
-    container_name: matic-reader
-    image: orbsnetworkstaging/management-service:v2.7.1-immediate
-    command: "npm start"
-    volumes:
-      - /opt/orbs/matic-reader:/opt/orbs/status
-    environment:
-      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
-      - NODE_ADDRESS
-      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
-      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
-      - ETHEREUM_FIRST_BLOCK=21700000
-      - ETHEREUM_POLL_INTERVAL_SECONDS=300
-    healthcheck:
-      test: node healthcheck.js || exit 1
+  # matic-reader:
+  #   container_name: matic-reader
+  #   image: orbsnetworkstaging/management-service:v2.7.1-immediate
+  #   command: "npm start"
+  #   volumes:
+  #     - /opt/orbs/matic-reader:/opt/orbs/status
+  #   environment:
+  #     - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+  #     - NODE_ADDRESS
+  #     - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
+  #     - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+  #     - ETHEREUM_FIRST_BLOCK=21700000
+  #     - ETHEREUM_POLL_INTERVAL_SECONDS=300
+  #   healthcheck:
+  #     test: node healthcheck.js || exit 1
 
-  matic-writer:
-    container_name: matic-writer
-    image: lukerogerson1/ethereum-writer:v1.7.3-main
-    command: "npm start"
-    volumes:
-      - /opt/orbs/matic-writer:/opt/orbs/status
-    environment:
-      - ETHEREUM_ELECTIONS_CONTRACT=0x94f2da1ef22649c642500e8B1C3252A4670eE95b
-      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
-      - NODE_PRIVATE_KEY
-      - SIGNER_ENDPOINT
-      - NODE_ADDRESS
-      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
-      - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1
-    healthcheck:
-      test: node healthcheck.js || exit 1
+  # matic-writer:
+  #   container_name: matic-writer
+  #   image: lukerogerson1/ethereum-writer:v1.7.3-main
+  #   command: "npm start"
+  #   volumes:
+
+  #     - /opt/orbs/matic-writer:/opt/orbs/status
+  #   environment:
+  #     - ETHEREUM_ELECTIONS_CONTRACT=0x94f2da1ef22649c642500e8B1C3252A4670eE95b
+  #     - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+  #     - NODE_PRIVATE_KEY
+  #     - SIGNER_ENDPOINT
+  #     - NODE_ADDRESS
+  #     - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/matic-reader
+  #     - ETHEREUM_DISCOUNT_GAS_PRICE_FACTOR=1
+  #   healthcheck:
+  #     test: node healthcheck.js || exit 1
 
   vm-lambda:
     container_name: vm-lambda
-    image: orbsnetworkstaging/vm-lambda:v0.0.41-immediate
+    image: host.docker.internal:6000/vm-lambda
+    pull_policy: never
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
       - /opt/orbs/vm-lambda:/opt/orbs/status
@@ -88,7 +90,7 @@ services:
 
   signer:
     container_name: signer
-    image: orbsnetworkstaging/signer:v2.6.1-immediate
+    image: orbsnetworkstaging/signer:v2.6.0-59e1b92f
     command: "/opt/orbs/orbs-signer"
     volumes:
       - /opt/orbs/signer:/opt/orbs/status
