@@ -79,6 +79,7 @@ services:
   vm-lambda:
     container_name: vm-lambda
     image: host.docker.internal:6000/vm-lambda
+    #image: orbsnetworkstaging/vm-lambda:jordan10
     pull_policy: never
     volumes:
       - $PODMAN_SOCKET_PATH:/var/run/docker.sock
@@ -112,3 +113,8 @@ services:
     healthcheck:
       # TODO: improve this healthcheck
       test: ping -c 1 logger || exit 1
+
+networks:
+  default:
+    name: custom_network
+    external: true
