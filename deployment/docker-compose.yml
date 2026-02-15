@@ -78,7 +78,7 @@ services:
 
   vm-lambda:
     container_name: vm-lambda
-    image: host.docker.internal:6000/vm-lambda
+    image: host.docker.internal:6000/vm-lambda:v5
     #image: orbsnetworkstaging/vm-lambda:jordan10
     pull_policy: never
     volumes:
