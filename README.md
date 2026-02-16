@@ -1,89 +1,45 @@
-# v3-node-setup repo
+# v3-node-setup
 
-**⚠️ WIP ⚠️**
+## One-liner installation (with prompts)
 
-[![smoke-test](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/orbs-network/v3-node-setup/actions/workflows/smoke-test.yml)
+Use this when you want to run the installer interactively so you can enter your node key, guardian details, and Ethereum RPC when prompted.
 
-## What's this?
+Download the script, then run it with sudo (so your terminal is used for input):
 
-This repo is temporarily being used to hold all the Orbs v3 node validator install, control and deployment files. In the future, they will be split into different repos
+```bash
+curl -sSL https://github.com/orbs-network/v3-node-setup/raw/main/install.sh -o /tmp/install.sh && sudo bash /tmp/install.sh
+```
 
-## Folders
+During setup you will be prompted for:
 
-- `deployment` - Manifest files. 
-- `control` - Validator Python control (manager) which replaced boyar. 
-- `setup` - Install scripts. 
-- `logging` - A service to expose container logs. These files will also live elsewhere in the future TBD
+- **Node key**: press Enter to create a new wallet, or paste an existing private key (64 hex chars, optional `0x` prefix).
+- **Guardian name** and **Guardian website**.
+- **Ethereum RPC URL** (a default is suggested).
 
-## Developing
+The installer clones the repo to `/opt/orbs/v3-node-setup`, installs dependencies (Docker, Docker Compose, Python, build tools), creates a `.env` and keys, and starts the stack with Docker Compose.
 
-### Running interactively
+### Using a different branch
 
-1. `docker build -t test-ubuntu .`
-2. ```
-      docker run \
-         -v $(pwd)/deployment:/home/ubuntu/deployment \
-         -v $(pwd)/logging:/home/ubuntu/logging \
-         -v $(pwd)/control:/home/ubuntu/control \
-         -v $(pwd)/setup:/home/ubuntu/setup \
-         -p 80:80 --rm -it --privileged test-ubuntu
-   ```
-   (Use volumes to allow us to make changes outside the container)
-3. `source ./setup/install.sh`
+```bash
+curl -sSL https://github.com/orbs-network/v3-node-setup/raw/BRANCH/install.sh -o /tmp/install.sh && sudo BRANCH=BRANCH bash /tmp/install.sh
+```
 
-### Running non-interactively
+Example for branch `feature/v5-ready`:
 
-1. `docker build -t test-ubuntu .`
-2. `docker run -p 80:80 -e ETH_ENDPOINT=YOUR-INFURA-ENDPOINT --rm --privileged test-ubuntu /bin/bash -c "source ./setup/install.sh"` (this will immediately exit the container after completion)
+```bash
+curl -sSL https://github.com/orbs-network/v3-node-setup/raw/feature/v5-ready/install.sh -o /tmp/install.sh && sudo BRANCH=feature/v5-ready bash /tmp/install.sh
+```
 
-### Install flags for dev
+### Custom install directory
 
-- `--skip-req`: Skip minimum machine spec requirement checks
-- `--verbose`: Display detailed logging output
-- `--new-keys`: Reprompt for wallet keys
+```bash
+sudo INSTALL_DIR=/opt/my-node bash /tmp/install.sh
+```
 
-### Sanity
+### Non-interactive (no prompts)
 
-From Mac host, run `curl http://localhost/service/ethereum-reader/status`
+If you run the installer with a pipe (e.g. `curl ... | sudo bash`), there is no TTY for prompts. The installer will skip the key/guardian prompts. After the install finishes, SSH in and run the setup script interactively to configure:
 
-### Exposed URLs
-
-#### Management service
-
-- **status**: http://localhost/service/ethereum-reader/status
-- **logs**: http://localhost/service/ethereum-reader/logs
-
-### Troubleshooting
-
-#### Healthcheck always shows "starting"
-
-[Podman uses systemd timers to run healtchecks periodically](https://github.com/containers/podman/issues/19326), which do not work in our dev Docker-in-Docker setup. As a workaround, you can run the command [`podman healthcheck run SERVICE`](https://docs.podman.io/en/v4.4/markdown/podman-healthcheck-run.1.html) to manually run a specific container healthcheck.
-
-
-# New version - jordan notes: -
-
-Run locally on MacOS:  
-
-Build the dev guardian image:
-
-```make build_docker_dev```
-
-Run the dev guardian image:
-
-```make run_docker_dev```
-
-Run the installation script after getting docker container prompt:
-
-```source ./orbs-node-on-host/setup/install.sh --skip-req```
-
-Inside the container, playing with docker-compose, make sure to run the dc command, not docker-compose, it's
-an alias to docker-compose with mapping to the right docker-compose-dev.yml if any.
-
-```dc up -d``` for example.
-
-To synchronize changes made by local host to the container (e.g. after modifying a file in the host), run:
-
-```sync```
-
-
-
+```bash
+sudo /opt/orbs/v3-node-setup/scripts/venv/bin/python3 /opt/orbs/v3-node-setup/scripts/prompt_and_env.py
+```

@@ -117,6 +117,7 @@ class SystemMonitor:
         self.services = self._get_docker_service_info()
         self.version = self._get_version()
 
+        logger.info("Current version: %s", self.version)
         logger.info("System status updated.")
 
     def _get_version(self) -> str:
@@ -130,12 +131,13 @@ class SystemMonitor:
                 tag = "untagged"
 
             if tag.find("fatal") > -1:
-                raise Exception(f"Git returned: {tag}")
+                tag = "untagged"
+                #raise Exception(f"Git returned: {tag}")
 
             return f"{commit} / {tag}"
         except Exception as e:
             logger.error(f"An error occurred while fetching the current git tag: {e}, using commit {commit} instead.")
-            return f"{commit} / notag"
+            return f"{commit} / untagged"
 
     def persist(self, status_file_path: str) -> None:
         """Persists the status of the system to a file"""

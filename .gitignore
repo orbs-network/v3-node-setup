@@ -10,8 +10,16 @@ ignore
 uv.sh
 
 .env
+.data/
+scripts/keys.json
 log.txt
 registry-data
 node_exporter*
 
 **/.DS_Store
+.env
+v3-node-setup.iml
+.idea
+.ai
+.tmp
+

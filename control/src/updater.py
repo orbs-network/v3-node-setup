@@ -83,6 +83,7 @@ def fetch_remote_descriptor():
         # response = requests.get(url)
         # response.raise_for_status()  # Check for HTTP errors
         # data = response.text
+        print (f"Fetched data: {data[:200]}...")  # Print the first 200 characters for verification
     except requests.exceptions.RequestException as e:
         logger.error(f"An error occurred while fetching the file: {e}")
         data = None
