@@ -34,7 +34,7 @@ def execute_command_in_container(container_name, command):
     """Execute the given command inside a running container."""
     try:
         result = subprocess.run(
-            ["podman", "exec", container_name] + command.split(),
+            ["docker", "exec", container_name] + command.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True

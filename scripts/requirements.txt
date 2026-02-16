@@ -1,0 +1,4 @@
+setuptools<82
+coincurve==18.0.0
+eth-hash[pycryptodome]
+python-dotenv==1.0.0

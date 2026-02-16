@@ -1,0 +1,2 @@
+# Run control poll every minute (paste into crontab -e or use: make control-install-cron)
+# * * * * * /path/to/v3-node-setup/scripts/run-control.sh poll >> /tmp/control.out 2>&1

@@ -1,0 +1,142 @@
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - .:/opt/orbs
+    depends_on:
+      - logger
+    healthcheck:
+      test: service nginx status || exit 1
+
+  ethereum-reader:
+    container_name: ethereum-reader
+    image: lukerogerson1/management-service:v2.7.1-immediate
+    command: "npm start"
+    volumes:
+      - ./.data/ethereum-reader:/opt/orbs/status
+    environment:
+      - DOCKER_COMPOSE_DESCRIPTOR_URL
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+      - NODE_ADDRESS
+      - ETHEREUM_ENDPOINT
+    healthcheck:
+      test: node healthcheck.js || exit 1
+    networks:
+      default:
+        aliases:
+          - management-service
+
+  matic-reader:
+    container_name: matic-reader
+    image: orbsnetworkstaging/management-service:v2.7.1-immediate
+    command: "npm start"
+    volumes:
+      - ./.data/matic-reader:/opt/orbs/status
+    environment:
+      - INJECT_FAKE_GUARDIAN={"name":"jordalishNode","ip":"0x7F000001"}
+      - NODE_ADDRESS
+      - ETHEREUM_GENESIS_CONTRACT=0x35eA0D75b2a3aB06393749B4651DfAD1Ffd49A77
+      - ETHEREUM_ENDPOINT=${MATIC_ENDPOINT}
+      - ETHEREUM_FIRST_BLOCK=21700000
+      - ETHEREUM_POLL_INTERVAL_SECONDS=300
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  ethereum-writer:
+    container_name: ethereum-writer
+    image: lukerogerson1/ethereum-writer:v1.7.3-main
+    command: "npm start"
+    volumes:
+      - ./.data/ethereum-writer:/opt/orbs/status
+    environment:
+      - ETHEREUM_ELECTIONS_CONTRACT=0x02Ca9F2c5dD0635516241efD480091870277865b
+      - ETHEREUM_ENDPOINT
+      - NODE_PRIVATE_KEY
+      - SIGNER_ENDPOINT
+      - NODE_ADDRESS
+      - MANAGEMENT_SERVICE_ENDPOINT=http://nginx/service/ethereum-reader
+    healthcheck:
+      test: node healthcheck.js || exit 1
+
+  signer:
+    container_name: signer
+    image: orbsnetworkstaging/signer:v2.6.0-59e1b92f
+    command: "/opt/orbs/orbs-signer"
+    volumes:
+      - ./.data/signer:/opt/orbs/status
+    environment:
+      - NODE_PRIVATE_KEY
+      - NODE_ADDRESS
+      - HTTP_ADDRESS=:7777
+    healthcheck:
+      test: "/opt/orbs/healthcheck --url http://localhost:7777 --output /opt/orbs/status/status.json"
+
+  logger:
+    container_name: logger
+    image: orbsnetworkstaging/v4-logger:v0.0.1
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./.data/logger:/opt/orbs/status
+    environment:
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
+  vm-notifications:
+    container_name: vm-notifications
+    platform: linux/amd64
+    image: orbsnetwork/vm-notifications:v1.0.31
+    entrypoint: ["/opt/orbs/service"]
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./.data/vm-notifications:/opt/orbs/status
+    environment:
+      - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
+  vm-lambda:
+    container_name: vm-lambda
+    image: orbsnetwork/vm-lambda:v0.0.27
+    entrypoint: ["/opt/orbs/service"]
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./.data/vm-lambda:/opt/orbs/status
+    environment:
+      - NODE_ENV=prod
+      - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
+  vm-twap:
+    container_name: vm-twap
+    platform: linux/amd64
+    image: orbsnetwork/vm-twap:v1.19.31
+    entrypoint: ["/opt/orbs/service"]
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./.data/vm-twap:/opt/orbs/status
+    environment:
+      - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    depends_on:
+      - ethereum-reader
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
+networks:
+  default:
+    name: custom_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
