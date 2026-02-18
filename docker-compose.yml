@@ -1,5 +1,26 @@
+# ---- UPDATE-DESCRIPTOR-BEGIN ----
+# targetNodes:
+#   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
+#   - id: "zzzz"
+# # used 1440 to spread over a day.
+# updateResolution: 120
+# # can be immediate or scheduled
+# updateMode: immediate
+# updateInAction: true
+# # can be commit id or latest
+# commit: latest
+# ---- UPDATE-DESCRIPTOR-END ----
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "200m"
+    max-file: "3"
+
 services:
   nginx:
+    logging: *default-logging
     container_name: nginx
     image: nginx:latest
     ports:
@@ -13,6 +34,7 @@ services:
       test: service nginx status || exit 1
 
   ethereum-reader:
+    logging: *default-logging
     container_name: ethereum-reader
     image: lukerogerson1/management-service:v2.7.1-immediate
     command: "npm start"
@@ -31,6 +53,7 @@ services:
           - management-service
 
   matic-reader:
+    logging: *default-logging
     container_name: matic-reader
     image: orbsnetworkstaging/management-service:v2.7.1-immediate
     command: "npm start"
@@ -47,6 +70,7 @@ services:
       test: node healthcheck.js || exit 1
 
   ethereum-writer:
+    logging: *default-logging
     container_name: ethereum-writer
     image: lukerogerson1/ethereum-writer:v1.7.3-main
     command: "npm start"
@@ -63,6 +87,7 @@ services:
       test: node healthcheck.js || exit 1
 
   signer:
+    logging: *default-logging
     container_name: signer
     image: orbsnetworkstaging/signer:v2.6.0-59e1b92f
     command: "/opt/orbs/orbs-signer"
@@ -71,11 +96,12 @@ services:
     environment:
       - NODE_PRIVATE_KEY
       - NODE_ADDRESS
-      - HTTP_ADDRESS=:7777
+      - HTTP_ADDRESS=:80
     healthcheck:
-      test: "/opt/orbs/healthcheck --url http://localhost:7777 --output /opt/orbs/status/status.json"
+      test: "/opt/orbs/healthcheck --url http://localhost:80 --output /opt/orbs/status/status.json"
 
   logger:
+    logging: *default-logging
     container_name: logger
     image: orbsnetworkstaging/v4-logger:v0.0.1
     volumes:
@@ -87,6 +113,7 @@ services:
       test: ping -c 1 logger || exit 1
 
   vm-notifications:
+    logging: *default-logging
     container_name: vm-notifications
     platform: linux/amd64
     image: orbsnetwork/vm-notifications:v1.0.31
@@ -102,9 +129,9 @@ services:
       test: ping -c 1 logger || exit 1
 
   vm-lambda:
+    logging: *default-logging
     container_name: vm-lambda
-    image: orbsnetwork/vm-lambda:v0.0.27
-    entrypoint: ["/opt/orbs/service"]
+    image: orbsnetworkstaging/vm-lambda:v5
     restart: unless-stopped
     volumes:
       - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
@@ -117,6 +144,7 @@ services:
       test: ping -c 1 logger || exit 1
 
   vm-twap:
+    logging: *default-logging
     container_name: vm-twap
     platform: linux/amd64
     image: orbsnetwork/vm-twap:v1.19.31
