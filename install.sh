@@ -1,45 +1,54 @@
 #!/usr/bin/env bash
 set -e
 
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+RST='\033[0m'
+step() { echo -e "${BLUE}[*]${RST} $*"; }
+err() { echo -e "${RED}Error:${RST} $*" >&2; exit 1; }
+
 if [ "$EUID" -ne 0 ]; then
-  echo "Error: Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)." >&2
-  exit 1
+  err "Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)."
 fi
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"
 REPO_URL="${REPO_URL:-https://github.com/orbs-network/v3-node-setup.git}"
 BRANCH="${BRANCH:-main}"
 
-echo "Using branch: $BRANCH"
+step "Using branch: $BRANCH"
 
 if ! command -v git &>/dev/null; then
-  echo "Installing git..."
+  step "Installing git..."
   if [ -f /etc/debian_version ] || [ -f /etc/apt/sources.list ]; then
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq git
+    apt-get update -qq >/dev/null 2>&1 || { apt-get update 2>&1; exit 1; }
+    apt-get install -y -qq git >/dev/null 2>&1 || { apt-get install -y git 2>&1; exit 1; }
   else
-    echo "Error: git is required. Please install git and re-run." >&2
-    exit 1
+    err "git is required. Please install git and re-run."
   fi
 fi
 
 if [ -d "$INSTALL_DIR/.git" ]; then
-  echo "Updating existing clone at $INSTALL_DIR..."
-  git -C "$INSTALL_DIR" fetch origin
+  step "Updating existing clone at $INSTALL_DIR..."
+  errf=$(mktemp)
+  if ! git -C "$INSTALL_DIR" fetch origin >/dev/null 2>"$errf"; then cat "$errf" >&2; rm -f "$errf"; exit 1; fi
   git -C "$INSTALL_DIR" checkout -q "$BRANCH" 2>/dev/null || true
-  git -C "$INSTALL_DIR" pull -q origin "$BRANCH"
+  if ! git -C "$INSTALL_DIR" pull -q origin "$BRANCH" >/dev/null 2>"$errf"; then echo -e "${RED}Error: git pull failed.${RST}" >&2; cat "$errf" >&2; rm -f "$errf"; exit 1; fi
+  rm -f "$errf"
 else
-  echo "Cloning to $INSTALL_DIR..."
+  step "Cloning to $INSTALL_DIR..."
   mkdir -p "$(dirname "$INSTALL_DIR")"
-  git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
+  errf=$(mktemp)
+  if ! git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR" >/dev/null 2>"$errf"; then echo -e "${RED}Error: git clone failed.${RST}" >&2; cat "$errf" >&2; rm -f "$errf"; exit 1; fi
+  rm -f "$errf"
 fi
 
 SETUP_SCRIPT="$INSTALL_DIR/scripts/run.sh"
 if [ ! -f "$SETUP_SCRIPT" ]; then
-  echo "Error: Setup script not found at $SETUP_SCRIPT" >&2
-  exit 1
+  err "Setup script not found at $SETUP_SCRIPT"
 fi
 
-echo "Running setup..."
+step "Running setup..."
 exec "$SETUP_SCRIPT"

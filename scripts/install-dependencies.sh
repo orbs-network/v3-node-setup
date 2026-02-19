@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+ROOT_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=install-common.sh
+. "$ROOT_SCRIPT/scripts/install-common.sh"
+
 MIN_PYTHON_MAJOR=3
 MIN_PYTHON_MINOR=8
-
-err() {
-  echo "Error: $1" >&2
-  exit 1
-}
 
 check_docker() {
   if command -v docker &>/dev/null; then
@@ -55,9 +54,8 @@ ensure_linux_build_deps() {
     return 0
   fi
   export DEBIAN_FRONTEND=noninteractive
-  echo "Ensuring build dependencies for Python packages (e.g. coincurve)..."
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq build-essential autoconf automake libtool pkg-config 2>/dev/null || sudo apt-get install -y build-essential autoconf automake libtool pkg-config
+  run_silent "Ensuring build dependencies for Python packages (e.g. coincurve)..." sudo apt-get update -qq
+  run_silent "Installing build tools..." sudo apt-get install -y -qq build-essential autoconf automake libtool pkg-config
 }
 
 install_linux() {
@@ -74,24 +72,30 @@ install_linux() {
 
   if [ -f /etc/debian_version ] || [ -f /etc/apt/sources.list ]; then
     export DEBIAN_FRONTEND=noninteractive
-    sudo apt-get update -qq
+    [ "$need_docker" = true ] || [ "$need_compose" = true ] || [ "$need_python" = true ] && run_silent "Updating package lists..." sudo apt-get update -qq
 
     if [ "$need_docker" = true ] || [ "$need_compose" = true ]; then
-      echo "Installing Docker..."
-      curl -fsSL https://get.docker.com | sh
+      step "Installing Docker..."
+      errf=$(mktemp)
+      if ! curl -fsSL https://get.docker.com | sh >/dev/null 2>"$errf"; then
+        echo -e "${RED}Error: Docker installation failed.${RST}" >&2
+        cat "$errf" >&2
+        rm -f "$errf"
+        exit 1
+      fi
+      rm -f "$errf"
       sudo usermod -aG docker "${USER:-$(whoami)}" 2>/dev/null || true
       if ! check_compose; then
-        echo "Installing docker-compose standalone..."
+        step "Installing docker-compose standalone..."
         arch=$(uname -m)
         [ "$arch" = x86_64 ] && arch=linux-x86_64 || arch=linux-aarch64
-        sudo curl -sSL "https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-$arch" -o /usr/local/bin/docker-compose
+        run_silent "Downloading docker-compose..." sudo curl -sSL "https://github.com/docker/compose/releases/download/v2.30.2/docker-compose-$arch" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
       fi
     fi
 
     if [ "$need_python" = true ]; then
-      echo "Installing Python and pip..."
-      sudo apt-get install -y -qq python3 python3-venv python3-pip 2>/dev/null || sudo apt-get install -y python3 python3-venv python3-pip
+      run_silent "Installing Python and pip..." sudo apt-get install -y -qq python3 python3-venv python3-pip
     fi
   else
     err "Unsupported Linux distro for auto-install. Please install manually: docker, docker-compose, python3 (${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR}+), python3-venv, pip."
@@ -117,13 +121,11 @@ run_mac() {
   fi
 
   if [ ${#missing[@]} -eq 0 ]; then
-    echo "All dependencies satisfied."
+    step_ok "All dependencies satisfied."
     return 0
   fi
 
-  echo "Missing required dependencies: ${missing[*]}" >&2
-  echo "On macOS please install them manually (e.g. Homebrew: brew install docker python@3.11)." >&2
-  exit 1
+  err "Missing required dependencies: ${missing[*]}. On macOS please install them manually (e.g. Homebrew: brew install docker python@3.11)."
 }
 
 run_linux() {
@@ -144,7 +146,7 @@ run_linux() {
   if ! check_pip; then
     err "pip could not be installed."
   fi
-  echo "Dependencies OK."
+  step_ok "Dependencies OK."
 }
 
 case "$(uname -s)" in

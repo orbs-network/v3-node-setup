@@ -7,6 +7,12 @@ import os
 import re
 import sys
 
+GREEN = "\033[0;32m"
+BLUE = "\033[0;34m"
+RED = "\033[0;31m"
+YELLOW = "\033[1;33m"
+RST = "\033[0m"
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
 ENV_PATH = os.path.join(ROOT, ".env")
@@ -37,45 +43,45 @@ def prompt_private_key():
 
     while True:
         inp = input(
-            "Press [Enter] to create a new wallet, or paste your private key (64 hex chars, optional 0x): "
+            f"{BLUE}Press [Enter] to create a new wallet, or paste your private key (64 hex chars, optional 0x):{RST} "
         ).strip()
         if not inp:
-            print("Creating new wallet...")
+            print(f"{GREEN}Creating new wallet...{RST}")
             generate_keys(KEYS_PATH)
             break
         if re.match(r"^(0x)?[0-9a-fA-F]{64}$", inp):
-            print("Importing wallet...")
+            print(f"{GREEN}Importing wallet...{RST}")
             import_key(KEYS_PATH, inp)
             break
-        print("Invalid key. Use 64 hex characters (optionally prefixed with 0x). Try again.")
+        print(f"{RED}Invalid key. Use 64 hex characters (optionally prefixed with 0x). Try again.{RST}")
 
 
 def prompt_guardian():
     while True:
-        name = input("Guardian name: ").strip()
+        name = input(f"{BLUE}Guardian name:{RST} ").strip()
         if name:
             break
-        print("Name cannot be empty.")
+        print(f"{RED}Name cannot be empty.{RST}")
     while True:
-        website = input("Guardian website: ").strip()
+        website = input(f"{BLUE}Guardian website:{RST} ").strip()
         if website:
             break
-        print("Website cannot be empty.")
+        print(f"{RED}Website cannot be empty.{RST}")
     return name, website
 
 
 def prompt_ethereum_rpc():
     default = "https://rpcman.orbs.network/rpc?chain=ethereum&appId=jordanl3test"
     while True:
-        inp = input(f"Ethereum RPC URL [{default}]: ").strip() or default
+        inp = input(f"{BLUE}Ethereum RPC URL{RST} [{default}]: ").strip() or default
         if re.match(r"https?://.*\..*", inp):
             return inp
-        print("Invalid URL. Example: https://.... Try again.")
+        print(f"{RED}Invalid URL. Example: https://.... Try again.{RST}")
 
 
 def main():
     if not sys.stdin.isatty():
-        print("Non-interactive run (no TTY). Skipping prompts. Run this script interactively later to set node key and guardian.")
+        print(f"{YELLOW}Non-interactive run (no TTY). Skipping prompts. Run this script interactively later to set node key and guardian.{RST}")
         return 0
 
     env = load_env()
@@ -87,12 +93,12 @@ def main():
         if current != derived:
             env["NODE_ADDRESS"] = derived
             save_env(env)
-            print(".env already had NODE_PRIVATE_KEY; updated NODE_ADDRESS to match.")
+            print(f"{GREEN}.env already had NODE_PRIVATE_KEY; updated NODE_ADDRESS to match.{RST}")
         else:
-            print(".env already has NODE_PRIVATE_KEY. Skipping setup prompts.")
+            print(f"{GREEN}.env already has NODE_PRIVATE_KEY. Skipping setup prompts.{RST}")
         return 0
 
-    print("Setup: node key, guardian details, and Ethereum RPC.\n")
+    print(f"{BLUE}Setup: node key, guardian details, and Ethereum RPC.{RST}\n")
 
     prompt_private_key()
     import json
@@ -111,7 +117,7 @@ def main():
     env["BASE_DIR"] = ROOT
 
     save_env(env)
-    print(f"\nWrote {ENV_PATH}")
+    print(f"\n{GREEN}Wrote {ENV_PATH}{RST}")
     try:
         myip = __import__("urllib.request").request.urlopen("https://ifconfig.me", timeout=5).read().decode().strip()
     except Exception:
@@ -119,7 +125,7 @@ def main():
     node_addr = keys["node-address"]
     if not node_addr.startswith("0x"):
         node_addr = "0x" + node_addr
-    print("\nGuardian registration:")
+    print(f"\n{GREEN}Guardian registration:{RST}")
     print(f"  https://guardians.orbs.network?name={name}&website={website}&ip={myip}&node_address={node_addr}")
     return 0
 
