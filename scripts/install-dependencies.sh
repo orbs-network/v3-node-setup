@@ -54,7 +54,7 @@ ensure_linux_build_deps() {
     return 0
   fi
   export DEBIAN_FRONTEND=noninteractive
-  run_silent "Ensuring build dependencies for Python packages (e.g. coincurve)..." sudo apt-get update -qq
+  run_silent "Ensuring build dependencies for Python packages..." sudo apt-get update -qq
   run_silent "Installing build tools..." sudo apt-get install -y -qq build-essential autoconf automake libtool pkg-config
 }
 

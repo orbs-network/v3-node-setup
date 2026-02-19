@@ -9,6 +9,7 @@ import sys
 
 GREEN = "\033[0;32m"
 BLUE = "\033[0;34m"
+PROMPT = "\033[38;5;31m"
 RED = "\033[0;31m"
 YELLOW = "\033[1;33m"
 RST = "\033[0m"
@@ -43,7 +44,7 @@ def prompt_private_key():
 
     while True:
         inp = input(
-            f"{BLUE}Press [Enter] to create a new wallet, or paste your private key (64 hex chars, optional 0x):{RST} "
+            f"{PROMPT}Press [Enter] to create a new wallet, or paste your private key (64 hex chars, optional 0x):{RST} "
         ).strip()
         if not inp:
             print(f"{GREEN}Creating new wallet...{RST}")
@@ -58,12 +59,12 @@ def prompt_private_key():
 
 def prompt_guardian():
     while True:
-        name = input(f"{BLUE}Guardian name:{RST} ").strip()
+        name = input(f"{PROMPT}Guardian name:{RST} ").strip()
         if name:
             break
         print(f"{RED}Name cannot be empty.{RST}")
     while True:
-        website = input(f"{BLUE}Guardian website:{RST} ").strip()
+        website = input(f"{PROMPT}Guardian website:{RST} ").strip()
         if website:
             break
         print(f"{RED}Website cannot be empty.{RST}")
@@ -73,7 +74,7 @@ def prompt_guardian():
 def prompt_ethereum_rpc():
     default = "https://rpcman.orbs.network/rpc?chain=ethereum&appId=jordanl3test"
     while True:
-        inp = input(f"{BLUE}Ethereum RPC URL{RST} [{default}]: ").strip() or default
+        inp = input(f"{PROMPT}Ethereum RPC URL{RST} [{default}]: ").strip() or default
         if re.match(r"https?://.*\..*", inp):
             return inp
         print(f"{RED}Invalid URL. Example: https://.... Try again.{RST}")
@@ -98,7 +99,7 @@ def main():
             print(f"{GREEN}.env already has NODE_PRIVATE_KEY. Skipping setup prompts.{RST}")
         return 0
 
-    print(f"{BLUE}Setup: node key, guardian details, and Ethereum RPC.{RST}\n")
+    print(f"{PROMPT}Setup: node key, guardian details, and Ethereum RPC.{RST}\n")
 
     prompt_private_key()
     import json
