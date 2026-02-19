@@ -31,7 +31,6 @@ case "$(uname -s)" in
     ;;
 esac
 
-echo
 echo -e "${BLUE}"
 cat << 'ORBS_ASCII'
 ▄████▄ ▄▄▄▄  ▄▄▄▄   ▄▄▄▄   ██     ████▄   ███  ██  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄
@@ -39,7 +38,6 @@ cat << 'ORBS_ASCII'
 ▀████▀ ██ ██ ██▄█▀ ▄▄██▀   ██████ ▄▄▄█▀   ██   ██ ▀███▀ ████▀ ██▄▄▄
 ORBS_ASCII
 echo -e "${RST}"
-echo
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"
 REPO_URL="${REPO_URL:-https://github.com/orbs-network/v3-node-setup.git}"
