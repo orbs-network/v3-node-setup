@@ -15,9 +15,6 @@ export function generateStatusObj(serviceLaunchTime: number, err?: string) {
       Payload: {
         Uptime: Math.round(new Date().getTime() / 1000) - serviceLaunchTime,
         MemoryBytesUsed: process.memoryUsage().heapUsed,
-        Version: {
-          Semantic: getCurrentVersion(),
-        },
       },
     },
     status
@@ -37,13 +34,4 @@ export function writeStatusToDisk(
   fs.writeFileSync(filePath, content);
 
   console.log(`Wrote status JSON to ${filePath} (${content.length} bytes).`);
-}
-
-export function getCurrentVersion() {
-  try {
-    return fs.readFileSync("/app/.version").toString().trim();
-  } catch (err: any) {
-    console.error(`Version file not found: ${err.message}`);
-  }
-  return "";
 }

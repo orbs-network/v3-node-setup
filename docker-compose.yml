@@ -103,7 +103,8 @@ services:
   logger:
     logging: *default-logging
     container_name: logger
-    image: orbsnetworkstaging/v4-logger:v0.0.1
+    build:
+      context: ./logging
     volumes:
       - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
       - ./.data/logger:/opt/orbs/status
