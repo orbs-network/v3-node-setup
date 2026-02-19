@@ -66,3 +66,4 @@ fi
 rm -f "$errf"
 
 success_msg "Orbs L3 node was installed successfully ! :)"
+echo
