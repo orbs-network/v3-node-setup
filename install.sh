@@ -13,11 +13,19 @@ if [ "$EUID" -ne 0 ]; then
   err "Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)."
 fi
 
+echo
+cat << 'ORBS_ASCII'
+
+▄████▄ ▄▄▄▄  ▄▄▄▄   ▄▄▄▄   ██     ████▄   ███  ██  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄
+██  ██ ██▄█▄ ██▄██ ███▄▄   ██      ▄▄██   ██ ▀▄██ ██▀██ ██▀██ ██▄▄
+▀████▀ ██ ██ ██▄█▀ ▄▄██▀   ██████ ▄▄▄█▀   ██   ██ ▀███▀ ████▀ ██▄▄▄
+
+ORBS_ASCII
+echo
+
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"
 REPO_URL="${REPO_URL:-https://github.com/orbs-network/v3-node-setup.git}"
 BRANCH="${BRANCH:-main}"
-
-step "Using branch: $BRANCH"
 
 if ! command -v git &>/dev/null; then
   step "Installing git..."
@@ -44,6 +52,13 @@ else
   if ! git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR" >/dev/null 2>"$errf"; then echo -e "${RED}Error: git clone failed.${RST}" >&2; cat "$errf" >&2; rm -f "$errf"; exit 1; fi
   rm -f "$errf"
 fi
+
+commit=$(git -C "$INSTALL_DIR" rev-parse --short HEAD 2>/dev/null || true)
+tag=$(git -C "$INSTALL_DIR" describe --tags --exact-match 2>/dev/null || git -C "$INSTALL_DIR" describe --tags 2>/dev/null || true)
+branch_info="Using branch: $BRANCH"
+[ -n "$commit" ] && branch_info="$branch_info (commit: $commit)"
+[ -n "$tag" ] && branch_info="$branch_info (tag: $tag)"
+step "$branch_info"
 
 SETUP_SCRIPT="$INSTALL_DIR/scripts/run.sh"
 if [ ! -f "$SETUP_SCRIPT" ]; then
