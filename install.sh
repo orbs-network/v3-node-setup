@@ -32,7 +32,7 @@ case "$(uname -s)" in
 esac
 
 echo
-printf '\033[38;5;34m'
+echo -e "${BLUE}"
 cat << 'ORBS_ASCII'
 
 ▄████▄ ▄▄▄▄  ▄▄▄▄   ▄▄▄▄   ██     ████▄   ███  ██  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄
@@ -40,7 +40,7 @@ cat << 'ORBS_ASCII'
 ▀████▀ ██ ██ ██▄█▀ ▄▄██▀   ██████ ▄▄▄█▀   ██   ██ ▀███▀ ████▀ ██▄▄▄
 
 ORBS_ASCII
-printf '\033[0m'
+echo -e "${RST}"
 echo
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"

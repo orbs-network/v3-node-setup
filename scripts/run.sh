@@ -31,8 +31,8 @@ if [ ! -d "$ROOT/scripts/venv" ]; then
   python3 -m venv "$ROOT/scripts/venv" 2>/dev/null || { python3 -m venv "$ROOT/scripts/venv" 2>&1; exit 1; }
 fi
 run_silent "Installing Python dependencies..." bash -c "\"$ROOT/scripts/venv/bin/python3\" -m pip install -q \"setuptools<82\" && \"$ROOT/scripts/venv/bin/python3\" -m pip install -q -r \"$ROOT/scripts/requirements.txt\""
-echo
 step "Setup: node key, guardian details, and Ethereum RPC."
+echo
 "$ROOT/scripts/venv/bin/python3" "$ROOT/scripts/prompt_and_env.py"
 
 if [ -f "$ENV_FILE" ]; then
