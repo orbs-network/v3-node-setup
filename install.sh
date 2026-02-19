@@ -13,7 +13,26 @@ if [ "$EUID" -ne 0 ]; then
   err "Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)."
 fi
 
+case "$(uname -s)" in
+  Darwin) ;;
+  Linux)
+    if [ -f /etc/os-release ]; then
+      # shellcheck source=/dev/null
+      . /etc/os-release
+      if [ "${ID:-}" != "ubuntu" ]; then
+        err "Unsupported OS: this installer supports macOS and Ubuntu Linux only (detected: ${ID:-unknown})."
+      fi
+    else
+      err "Unsupported OS: this installer supports macOS and Ubuntu Linux only. Could not detect distribution."
+    fi
+    ;;
+  *)
+    err "Unsupported OS: $(uname -s). This installer supports macOS and Ubuntu Linux only."
+    ;;
+esac
+
 echo
+printf '\033[38;5;34m'
 cat << 'ORBS_ASCII'
 
 ▄████▄ ▄▄▄▄  ▄▄▄▄   ▄▄▄▄   ██     ████▄   ███  ██  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄
@@ -21,6 +40,7 @@ cat << 'ORBS_ASCII'
 ▀████▀ ██ ██ ██▄█▀ ▄▄██▀   ██████ ▄▄▄█▀   ██   ██ ▀███▀ ████▀ ██▄▄▄
 
 ORBS_ASCII
+printf '\033[0m'
 echo
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"
