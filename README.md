@@ -2,7 +2,7 @@
 
 ## One-liner installation (with prompts)
 
-Use this when you want to run the installer interactively so you can enter your node key, guardian details, and Ethereum RPC when prompted.
+Use this when you want to run the installer interactively so you can enter your node key and guardian details when prompted.
 
 Download the script, then run it with sudo (so your terminal is used for input):
 
@@ -14,7 +14,6 @@ During setup you will be prompted for:
 
 - **Node key**: press Enter to create a new wallet, or paste an existing private key (64 hex chars, optional `0x` prefix).
 - **Guardian name** and **Guardian website**.
-- **Ethereum RPC URL** (a default is suggested).
 
 The installer clones the repo to `/opt/orbs/v3-node-setup`, installs dependencies (Docker, Docker Compose, Python, build tools), creates a `.env` and keys, and starts the stack with Docker Compose.
 

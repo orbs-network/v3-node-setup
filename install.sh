@@ -9,25 +9,23 @@ RST='\033[0m'
 step() { echo -e "${BLUE}[*]${RST} $*"; }
 err() { echo -e "${RED}Error:${RST} $*" >&2; exit 1; }
 
-if [ "$EUID" -ne 0 ]; then
-  err "Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)."
-fi
+OS_NAME="$(uname -s)"
 
-case "$(uname -s)" in
+case "$OS_NAME" in
   Darwin) ;;
   Linux)
     if [ -f /etc/os-release ]; then
       # shellcheck source=/dev/null
       . /etc/os-release
       if [ "${ID:-}" != "ubuntu" ]; then
-        err "Unsupported OS: this installer supports macOS and Ubuntu Linux only (detected: ${ID:-unknown})."
+        err "Unsupported OS: this installer supports Ubuntu Linux only (detected: ${ID:-unknown})."
       fi
     else
-      err "Unsupported OS: this installer supports macOS and Ubuntu Linux only. Could not detect distribution."
+      err "Unsupported OS: this installer supports Ubuntu Linux only. Could not detect distribution."
     fi
     ;;
   *)
-    err "Unsupported OS: $(uname -s). This installer supports macOS and Ubuntu Linux only."
+    err "Unsupported OS: $OS_NAME. This installer supports Ubuntu Linux only."
     ;;
 esac
 
@@ -38,6 +36,17 @@ cat << 'ORBS_ASCII'
 ▀████▀ ██ ██ ██▄█▀ ▄▄██▀   ██████ ▄▄▄█▀   ██   ██ ▀███▀ ████▀ ██▄▄▄
 ORBS_ASCII
 echo -e "${RST}"
+
+if [ "$OS_NAME" = "Darwin" ]; then
+  echo -e "${RED}This installer must not run on a local macOS development machine.${RST}"
+  echo -e "${RED}Use this repository as-is and run commands with: make [CMD]${RST}"
+  echo
+  exit 0
+fi
+
+if [ "$EUID" -ne 0 ]; then
+  err "Please run with sudo (e.g. sudo ./install.sh or curl -sSL ... | sudo bash)."
+fi
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/orbs/v3-node-setup}"
 REPO_URL="${REPO_URL:-https://github.com/orbs-network/v3-node-setup.git}"

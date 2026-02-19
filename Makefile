@@ -45,7 +45,7 @@ aws-l3-launch:
 aws-l3-terminate:
 	@if [ -f $(AWS_L3_INSTANCE_IDS) ] && [ -s $(AWS_L3_INSTANCE_IDS) ]; then \
 		ids=$$(cat $(AWS_L3_INSTANCE_IDS) | tr '\n' ' '); \
-		aws ec2 terminate-instances --instance-ids $$ids --region $(AWS_REGION); \
+		aws ec2 terminate-instances --instance-ids $$ids --region $(AWS_REGION) --no-cli-pager; \
 		: > $(AWS_L3_INSTANCE_IDS); \
 		echo "Terminated instances and cleared $(AWS_L3_INSTANCE_IDS)"; \
 	else \

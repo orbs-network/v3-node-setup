@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Prompt for node key, guardian details, and Ethereum RPC; write keys and .env.
+Prompt for node key and guardian details; write keys and .env.
 Run from project root; .env and keys are written to project root.
 """
 import os
@@ -71,15 +71,6 @@ def prompt_guardian():
     return name, website
 
 
-def prompt_ethereum_rpc():
-    default = "https://rpcman.orbs.network/rpc?chain=ethereum&appId=jordanl3test"
-    while True:
-        inp = input(f"{PROMPT}Ethereum RPC URL{RST} [{default}]: ").strip() or default
-        if re.match(r"https?://.*\..*", inp):
-            return inp
-        print(f"{RED}Invalid URL. Example: https://.... Try again.{RST}")
-
-
 def main():
     if not sys.stdin.isatty():
         print(f"{YELLOW}Non-interactive run (no TTY). Skipping prompts. Run this script interactively later to set node key and guardian.{RST}")
@@ -99,7 +90,7 @@ def main():
             print(f"{GREEN}.env already has NODE_PRIVATE_KEY. Skipping setup prompts.{RST}")
         return 0
 
-    print(f"{PROMPT}Setup: node key, guardian details, and Ethereum RPC.{RST}\n")
+    print(f"{PROMPT}Setup: node key and guardian details.{RST}\n")
 
     prompt_private_key()
     import json
@@ -107,11 +98,10 @@ def main():
         keys = json.load(f)
 
     name, website = prompt_guardian()
-    eth_endpoint = prompt_ethereum_rpc()
 
     env["NODE_PRIVATE_KEY"] = keys["node-private-key"]
     env["NODE_ADDRESS"] = keys["node-address"]
-    env["ETHEREUM_ENDPOINT"] = eth_endpoint
+    env.setdefault("ETHEREUM_ENDPOINT", "https://rpcman.orbs.network/rpc?chain=ethereum&appId=jordanl3test")
     env.setdefault("SIGNER_ENDPOINT", "http://signer:7777")
     env.setdefault("MATIC_ENDPOINT", "https://rpcman.orbs.network/rpc?chain=polygon&appId=jordanl3test")
     env["DOCKER_COMPOSE_FILE"] = os.path.join(ROOT, "docker-compose.yml")
