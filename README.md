@@ -7,7 +7,7 @@ Use this when you want to run the installer interactively so you can enter your 
 Download the script, then run it with sudo (so your terminal is used for input):
 
 ```bash
-curl -sSL https://github.com/orbs-network/v3-node-setup/raw/main/install.sh -o /tmp/install.sh && sudo bash /tmp/install.sh
+curl -sSL "https://github.com/orbs-network/v3-node-setup/raw/main/install.sh?t=$(date +%s)" -o /tmp/install.sh && sudo bash /tmp/install.sh
 ```
 
 During setup you will be prompted for:
@@ -21,13 +21,13 @@ The installer clones the repo to `/opt/orbs/v3-node-setup`, installs dependencie
 ### Using a different branch
 
 ```bash
-curl -sSL https://github.com/orbs-network/v3-node-setup/raw/BRANCH/install.sh -o /tmp/install.sh && sudo BRANCH=BRANCH bash /tmp/install.sh
+curl -sSL "https://github.com/orbs-network/v3-node-setup/raw/BRANCH/install.sh?t=$(date +%s)" -o /tmp/install.sh && sudo BRANCH=BRANCH bash /tmp/install.sh
 ```
 
 Example for branch `feature/v5-ready`:
 
 ```bash
-curl -sSL https://github.com/orbs-network/v3-node-setup/raw/feature/v5-ready/install.sh -o /tmp/install.sh && sudo BRANCH=feature/v5-ready bash /tmp/install.sh
+curl -sSL "https://github.com/orbs-network/v3-node-setup/raw/feature/v5-ready/install.sh?t=$(date +%s)" -o /tmp/install.sh && sudo BRANCH=feature/v5-ready bash /tmp/install.sh
 ```
 
 ### Custom install directory
