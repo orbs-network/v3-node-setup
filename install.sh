@@ -38,10 +38,13 @@ ORBS_ASCII
 echo -e "${RST}"
 
 if [ "$OS_NAME" = "Darwin" ]; then
-  echo -e "${RED}This installer must not run on a local macOS development machine.${RST}"
-  echo -e "${RED}Use this repository as-is and run commands with: make [CMD]${RST}"
-  echo
-  exit 0
+  step "macOS detected: running .env and key setup only (Python assumed installed)."
+  INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SETUP_SCRIPT="$INSTALL_DIR/scripts/run-macos.sh"
+  if [ ! -f "$SETUP_SCRIPT" ]; then
+    err "Setup script not found at $SETUP_SCRIPT"
+  fi
+  exec "$SETUP_SCRIPT"
 fi
 
 if [ "$EUID" -ne 0 ]; then
