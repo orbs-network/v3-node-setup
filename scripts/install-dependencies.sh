@@ -25,6 +25,23 @@ check_compose() {
   return 1
 }
 
+install_docker_compose_wrapper() {
+  if command -v docker-compose &>/dev/null; then
+    return 0
+  fi
+  if ! docker compose version &>/dev/null 2>&1; then
+    return 1
+  fi
+  step "Installing docker-compose wrapper (docker compose) for all users..."
+  sudo tee /usr/local/bin/docker-compose >/dev/null <<'WRAPPER'
+#!/bin/sh
+export PATH="/usr/local/bin:/usr/bin:$PATH"
+exec docker compose "$@"
+WRAPPER
+  sudo chmod +x /usr/local/bin/docker-compose
+  step_ok "docker-compose wrapper installed at /usr/local/bin/docker-compose."
+}
+
 check_python() {
   if ! command -v python3 &>/dev/null; then
     return 1
@@ -121,6 +138,7 @@ run_mac() {
   fi
 
   if [ ${#missing[@]} -eq 0 ]; then
+    install_docker_compose_wrapper || true
     step_ok "All dependencies satisfied."
     return 0
   fi
@@ -146,6 +164,7 @@ run_linux() {
   if ! check_pip; then
     err "pip could not be installed."
   fi
+  install_docker_compose_wrapper || true
   step_ok "Dependencies OK."
 }
 

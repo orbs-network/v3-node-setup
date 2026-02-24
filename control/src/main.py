@@ -53,9 +53,9 @@ def main():
             # run_command(checkout_command)  # checkout the latest tag
             docker_compose_file = getenv("DOCKER_COMPOSE_FILE")
 
-            error = run_command(f"docker-compose -f {docker_compose_file} up -d")
+            error = run_command(f"docker compose -f {docker_compose_file} up -d")
             if error:
-                print("Error running docker-compose")
+                print("Error running docker compose")
 
     system_monitor.update()
     system_monitor.persist(status_file)

@@ -302,8 +302,8 @@ def trigger_update(scheduled_commit_hash):
     logger.info(res)
 
     docker_compose_file = os.getenv("DOCKER_COMPOSE_FILE")
-    logger.info(f"Running docker-compose -f {docker_compose_file} up -d")
-    res = os.popen(f"docker-compose -f {docker_compose_file} up -d").read()
+    logger.info(f"Running docker compose -f {docker_compose_file} up -d")
+    res = os.popen(f"docker compose -f {docker_compose_file} up -d").read()
     logger.info(res)
 
     logger.info("Update completed")
