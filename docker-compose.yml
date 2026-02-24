@@ -2,7 +2,7 @@
 # targetNodes:
 #   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
 #   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
-#   - id: "zzzz"
+#   - id: "*"
 # # used 1440 to spread over a day.
 # updateResolution: 120
 # # can be immediate or scheduled
