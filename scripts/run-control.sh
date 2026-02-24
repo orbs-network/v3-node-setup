@@ -4,6 +4,8 @@ set -e
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+export PATH="/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
+
 set -a
 [ -f "$ROOT/.env" ] && . "$ROOT/.env"
 set +a
