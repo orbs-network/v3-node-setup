@@ -139,8 +139,12 @@ services:
       - ./.data/vm-lambda:/opt/orbs/status
     environment:
       - NODE_ENV=prod
-      - MULTILOG_DISABLED=1
-      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+      - MULTILOG_DISABLED=1      
+      - LAMBDA_GIT_TAG=v5                                                                                                                                                                                              
+      - LAMBDA_PROJECTS_DIR=./src/poc/projects/                                                                                                                                                                        
+      - LAMBDA_MGMT_SERVICE_URL=management-service
+      - LAMBDA_SIGNER_ENDPOINT=signer
+      - LAMBDA_STATUS_JSON_PATH=./status/status.json 
     healthcheck:
       test: ping -c 1 logger || exit 1
 
