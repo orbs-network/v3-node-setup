@@ -140,7 +140,7 @@ services:
     environment:
       - NODE_ENV=prod
       - MULTILOG_DISABLED=1      
-      - LAMBDA_GIT_TAG=v5                                                                                                                                                                                              
+      - LAMBDA_GIT_TAG=feature/v5                                                                                                                                                                                              
       - LAMBDA_PROJECTS_DIR=./orbs-lambda/projects                                                                                                                                                                        
       - LAMBDA_MGMT_SERVICE_URL=http://nginx/service/ethereum-reader/status
       - LAMBDA_SIGNER_ENDPOINT=http://nginx/service/signer
