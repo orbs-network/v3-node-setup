@@ -142,7 +142,7 @@ services:
       - MULTILOG_DISABLED=1      
       - LAMBDA_GIT_TAG=v5                                                                                                                                                                                              
       - LAMBDA_PROJECTS_DIR=./src/poc/projects/                                                                                                                                                                        
-      - LAMBDA_MGMT_SERVICE_URL=http://nginx/service/ethereum-reader
+      - LAMBDA_MGMT_SERVICE_URL=http://nginx/service/ethereum-reader/status
       - LAMBDA_SIGNER_ENDPOINT=http://nginx/service/signer
       - LAMBDA_STATUS_JSON_PATH=./status/status.json 
     healthcheck:
