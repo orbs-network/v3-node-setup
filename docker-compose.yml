@@ -132,7 +132,7 @@ services:
   vm-lambda:
     logging: *default-logging
     container_name: vm-lambda
-    image: orbsnetworkstaging/vm-lambda:v0.0.1-e25e79ba
+    image: orbsnetworkstaging/vm-lambda:v5
     restart: unless-stopped
     volumes:
       - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
