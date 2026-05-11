@@ -182,7 +182,7 @@ services:
 
   vm-l3-tee-verifier:
     logging: *default-logging
-    container_name: vm-l3-dummy-service
+    container_name: vm-l3-tee-verifier
     image: orbsnetworkstaging/l3-tee-verifier:v1.0.4
     restart: unless-stopped
     volumes:
