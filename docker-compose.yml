@@ -2,7 +2,8 @@
 # targetNodes:
 #   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
 #   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
-#   - id: "*"
+#   - id: 481029997EFfD67A74b48C98D763e2a2147e68A6
+# # use id: "*" to target all nodes
 # # used 1440 to spread over a day.
 # updateResolution: 120
 # # can be immediate or scheduled
@@ -175,6 +176,18 @@ services:
       - ./.data/vm-l3-dummy-service:/opt/orbs/status
     environment:
       - MULTILOG_DISABLED=1
+      - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    healthcheck:
+      test: ping -c 1 logger || exit 1
+
+  vm-l3-tee-verifier:
+    logging: *default-logging
+    container_name: vm-l3-dummy-service
+    image: orbsnetworkstaging/l3-tee-verifier:v1.0.4
+    restart: unless-stopped
+    volumes:
+      - ./.data/l3-tee-verifier:/opt/orbs/status
+    environment:
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
       test: ping -c 1 logger || exit 1
