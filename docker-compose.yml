@@ -3,7 +3,6 @@
 #   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
 #   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
 #   - id: 481029997EFfD67A74b48C98D763e2a2147e68A6
-#   - id: "*"
 # # use id: "*" to target all nodes
 # # used 1440 to spread over a day.
 # updateResolution: 120
@@ -183,11 +182,11 @@ services:
 
   vm-l3-tee-verifier:
     logging: *default-logging
-    container_name: vm-l3-tee-verifier
-    image: orbsnetworkstaging/l3-tee-verifier:v1.0.4
+    container_name: vm-verifier
+    image: orbsnetworkstaging/vm-verifier:v1.0.5
     restart: unless-stopped
     volumes:
-      - ./.data/l3-tee-verifier:/opt/orbs/status
+      - ./.data/vm-verifier:/opt/orbs/status
     environment:
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
