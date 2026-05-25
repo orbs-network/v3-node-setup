@@ -171,18 +171,12 @@ services:
   vm-verifier:
     logging: *default-logging
     container_name: vm-verifier
-    platform: linux/amd64
     image: orbsnetworkstaging/vm-verifier:v1.0.5
-    entrypoint: ["/opt/orbs/service"]
     restart: unless-stopped
     volumes:
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
       - ./.data/vm-verifier:/opt/orbs/status
     environment:
-      - MULTILOG_DISABLED=1
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
-    depends_on:
-      - ethereum-reader
     healthcheck:
       test: ping -c 1 logger || exit 1
   vm-l3-dummy-service:
@@ -194,18 +188,6 @@ services:
       - ./.data/vm-l3-dummy-service:/opt/orbs/status
     environment:
       - MULTILOG_DISABLED=1
-      - STATUS_FILE_PATH=/opt/orbs/status/status.json
-    healthcheck:
-      test: ping -c 1 logger || exit 1
-
-  vm-l3-tee-verifier:
-    logging: *default-logging
-    container_name: vm-verifier
-    image: orbsnetworkstaging/vm-verifier:v1.0.5
-    restart: unless-stopped
-    volumes:
-      - ./.data/vm-verifier:/opt/orbs/status
-    environment:
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
       test: ping -c 1 logger || exit 1
