@@ -29,7 +29,7 @@ services:
       - 80:80
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - .:/opt/orbs
+      - ./.data:/opt/orbs
     depends_on:
       - logger
     healthcheck:
