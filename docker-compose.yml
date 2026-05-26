@@ -149,25 +149,6 @@ services:
       - LAMBDA_STATUS_JSON_PATH=./status/status.json 
     healthcheck:
       test: ping -c 1 logger || exit 1
-
-  vm-twap:
-    logging: *default-logging
-    container_name: vm-twap
-    platform: linux/amd64
-    image: orbsnetwork/vm-twap:v1.19.31
-    entrypoint: ["/opt/orbs/service"]
-    restart: unless-stopped
-    volumes:
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
-      - ./.data/vm-twap:/opt/orbs/status
-    environment:
-      - MULTILOG_DISABLED=1
-      - STATUS_FILE_PATH=/opt/orbs/status/status.json
-    depends_on:
-      - ethereum-reader
-    healthcheck:
-      test: ping -c 1 logger || exit 1
-
   vm-verifier:
     logging: *default-logging
     container_name: vm-verifier
@@ -177,6 +158,8 @@ services:
       - ./.data/vm-verifier:/opt/orbs/status
     environment:
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
+    depends_on:
+      - ethereum-reader
     healthcheck:
       test: ping -c 1 logger || exit 1
   vm-l3-dummy-service:
