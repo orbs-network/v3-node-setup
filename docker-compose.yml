@@ -152,7 +152,7 @@ services:
   vm-verifier:
     logging: *default-logging
     container_name: vm-verifier
-    image: orbsnetworkstaging/vm-verifier:v1.0.13
+    image: orbsnetworkstaging/vm-verifier:v1.0.14
     restart: unless-stopped
     volumes:
       - ./.data/vm-verifier:/opt/orbs/status
