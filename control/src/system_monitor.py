@@ -9,6 +9,7 @@ from datetime import datetime
 import docker
 import psutil
 import updater
+from docker import errors
 
 import image_drift
 from logger import logger
@@ -282,6 +283,8 @@ class SystemMonitor:
 
             service_data = {
                 "Name": container.name,
+                "ImageTag": self.__get_image_tag(container),
+                "ImageDigest": self.__get_image_digest(container),
                 "Image": image,
                 "Command": cmdConf,
                 "Environment": self.__get_filtered_env_vars(container.attrs["Config"]["Env"]),
@@ -303,6 +306,26 @@ class SystemMonitor:
         logger.info("Fetching done.")
 
         return service_info
+
+    def __get_image_tag(self, container: docker.models.containers.Container) -> str:
+        """Returns the image reference the container was created from, eg. `nginx:latest`"""
+
+        # Taken from the container rather than the compose file, so this reports what is
+        # actually running. The two can legitimately differ, and that difference matters.
+        return container.attrs.get("Config", {}).get("Image", "")
+
+    def __get_image_digest(self, container: docker.models.containers.Container) -> str:
+        """Returns the digest of the image the container is running, if it has one"""
+
+        try:
+            repo_digests = container.image.attrs.get("RepoDigests", [])
+        except errors.ImageNotFound:
+            # The image can be removed while its container keeps running, leaving nothing
+            # to read a digest from.
+            return ""
+
+        # Locally built images were never pulled from a registry, so they have no digest.
+        return next(iter(repo_digests), "").partition("@")[2]
 
     def __is_not_blacklisted(self, env_var: str) -> bool:
         """Returns True if the environment variable is not blacklisted"""
