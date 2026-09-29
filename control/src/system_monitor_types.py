@@ -9,6 +9,8 @@ class Identity(TypedDict):
     """The addresses this node runs as"""
 
     NodeAddress: str
+    EthAddress: str
+    Registration: str
 
 
 class Payload(TypedDict):

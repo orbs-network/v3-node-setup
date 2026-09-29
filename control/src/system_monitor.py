@@ -11,6 +11,7 @@ import psutil
 import updater
 from docker import errors
 
+import identity
 import image_drift
 from logger import logger
 from system_monitor_types import Identity, Payload, Status, Version
@@ -38,6 +39,8 @@ class SystemMonitor:
     services: dict
     image_drift: list
     node_address: str = ""
+    eth_address: str = ""
+    registration: str = identity.UNKNOWN
     start_time: float
     version: str = ""
 
@@ -72,7 +75,7 @@ class SystemMonitor:
             Extra=self.extra,
             Payload=Payload(
                 Version=Version(Semantic=self.version),
-                Identity=Identity(NodeAddress=self.node_address),
+                Identity=Identity(NodeAddress=self.node_address, EthAddress=self.eth_address, Registration=self.registration),
                 Metrics=self.metrics,
                 Services=self.services,
                 ImageDrift=self.image_drift,
@@ -127,7 +130,8 @@ class SystemMonitor:
         self.metrics = metrics
         self.services = self._get_docker_service_info()
         self.version = self._get_version()
-        self.node_address = self._get_node_address()
+        self.node_address = identity.get_node_address()
+        self.eth_address, self.registration = identity.resolve_eth_address(self.node_address)
 
         logger.debug("Current version: %s", self.version)
         logger.debug("System status updated.")
@@ -156,20 +160,6 @@ class SystemMonitor:
             set_status_for_ui(summary)
 
         return drifted
-
-    def _get_node_address(self) -> str:
-        """Returns the address this node runs as, or an empty string when it is not configured"""
-
-        address = os.getenv("NODE_ADDRESS", "").strip()
-
-        if not address:
-            logger.error("NODE_ADDRESS is not set, reporting an empty node address")
-            return ""
-
-        # scripts/generate_wallet.py stores the address without the prefix, while everything
-        # that consumes one expects it. The mixed case is an EIP-55 checksum, so it is left
-        # exactly as it is.
-        return address if address.startswith("0x") else f"0x{address}"
 
     def _get_version(self) -> str:
         # Get current git commit and git tag if available and combine them to a single version string.
