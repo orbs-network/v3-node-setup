@@ -2,6 +2,7 @@ import hashlib
 import os
 import json
 import re
+import shutil
 import subprocess
 from datetime import datetime, timedelta
 
@@ -161,6 +162,52 @@ def get_current_git_commit_hash():
     except Exception as e:
         logger.error(f"An error occurred while fetching the current git commit hash: {e}")
         return None
+
+
+def get_free_disk_gb():
+    """Returns the free space on the filesystem holding the Docker images"""
+
+    for path in (os.getenv("DOCKER_DATA_ROOT", "/var/lib/docker"), "/"):
+        try:
+            return shutil.disk_usage(path).free / (1024**3)
+        except OSError:
+            continue
+
+    return 0.0
+
+
+def prune_images():
+    """Removes images left dangling by a pull, so updates do not accumulate them"""
+
+    logger.info("Pruning dangling images")
+
+    # Only dangling images, never `-a`: an image can be untagged and still be the one a
+    # stopped container needs. A pull that moves a tag leaves the old image dangling,
+    # which is exactly the case this reclaims.
+    run(["docker", "image", "prune", "-f"], check=False)
+
+
+def ensure_disk_headroom():
+    """Raises when there is too little free space to pull images safely"""
+
+    required_gb = float(os.getenv("MIN_FREE_DISK_GB", "5"))
+    free_gb = get_free_disk_gb()
+
+    if free_gb >= required_gb:
+        logger.info(f"{free_gb:.1f}GB free, enough to pull")
+        return
+
+    # A pull downloads the new images while the old ones are still on disk, so running it
+    # without headroom can fill the filesystem and take the node down.
+    logger.info(f"Only {free_gb:.1f}GB free, below the {required_gb}GB needed - pruning first")
+    prune_images()
+
+    free_gb = get_free_disk_gb()
+
+    if free_gb < required_gb:
+        raise RuntimeError(f"Not enough free disk to pull images: {free_gb:.1f}GB free, {required_gb}GB required")
+
+    logger.info(f"{free_gb:.1f}GB free after pruning, enough to pull")
 
 
 def get_applied_commit():
@@ -355,8 +402,21 @@ def trigger_update(scheduled_commit_hash):
     logger.info(f"Checking out commit {scheduled_commit_hash}")
     run(["git", "checkout", scheduled_commit_hash])
 
-    logger.info(f"Running docker compose -f {docker_compose_file} up -d")
-    run(["docker", "compose", "-f", docker_compose_file, "up", "-d"])
+    ensure_disk_headroom()
+
+    # `up -d` alone only recreates a container when the image reference changes, so an
+    # image re-pushed under the same tag would never be picked up without this.
+    logger.info(f"Running docker compose -f {docker_compose_file} pull")
+    run(["docker", "compose", "-f", docker_compose_file, "pull"])
+
+    # --remove-orphans stops containers dropped from the compose file. Without it they
+    # keep running unmanaged, and an abandoned container's writable layer grows without
+    # anything ever reclaiming it.
+    logger.info(f"Running docker compose -f {docker_compose_file} up -d --remove-orphans")
+    run(["docker", "compose", "-f", docker_compose_file, "up", "-d", "--remove-orphans"])
+
+    # After the containers are running, so nothing still in use is removed.
+    prune_images()
 
     # Only reached when every step above succeeded, since they raise otherwise. Recording
     # the checked out commit rather than the requested one, so a tag resolves to a hash.

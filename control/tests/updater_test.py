@@ -129,3 +129,71 @@ def test_a_checked_out_but_unapplied_commit_is_retried(mocker: MockerFixture) ->
     updater.compare()
 
     trigger.assert_called_once_with("abc123")
+
+
+def test_an_update_pulls_before_bringing_containers_up(mocker: MockerFixture) -> None:
+    """Test that images are pulled, then recreated, then pruned, in that order"""
+
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    run = mocker.patch.object(updater, "run")
+
+    updater.trigger_update("deadbeef")
+
+    docker_steps = [call.args[0] for call in run.call_args_list if call.args[0][0] == "docker"]
+
+    assert docker_steps[0][-1] == "pull"
+    assert "--remove-orphans" in docker_steps[1]
+    assert docker_steps[2] == ["docker", "image", "prune", "-f"]
+
+
+def test_pruning_happens_after_the_containers_are_running(mocker: MockerFixture) -> None:
+    """Test that a failed up -d stops the update before anything is pruned"""
+
+    # Pruning ahead of a successful `up` could remove an image a container still needs.
+    def fail_on_up(command: list, check: bool = True) -> str:
+        if "up" in command:
+            raise CommandError(command, 1, "up blew up")
+        return ""
+
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    run = mocker.patch.object(updater, "run", side_effect=fail_on_up)
+
+    with pytest.raises(CommandError):
+        updater.trigger_update("deadbeef")
+
+    assert ["docker", "image", "prune", "-f"] not in [call.args[0] for call in run.call_args_list]
+    assert updater.get_applied_commit() == ""
+
+
+def test_enough_disk_skips_the_prune(mocker: MockerFixture) -> None:
+    """Test that healthy free space does not trigger a prune"""
+
+    mocker.patch.object(updater, "get_free_disk_gb", return_value=20.0)
+    prune = mocker.patch.object(updater, "prune_images")
+
+    updater.ensure_disk_headroom()
+
+    prune.assert_not_called()
+
+
+def test_low_disk_prunes_and_continues_when_that_frees_enough(mocker: MockerFixture) -> None:
+    """Test that a prune which recovers enough space lets the update proceed"""
+
+    mocker.patch.object(updater, "get_free_disk_gb", side_effect=[1.0, 20.0])
+    prune = mocker.patch.object(updater, "prune_images")
+
+    updater.ensure_disk_headroom()
+
+    prune.assert_called_once()
+
+
+def test_low_disk_aborts_when_pruning_does_not_free_enough(mocker: MockerFixture) -> None:
+    """Test that the update is refused rather than filling the filesystem"""
+
+    mocker.patch.object(updater, "get_free_disk_gb", side_effect=[1.0, 1.2])
+    mocker.patch.object(updater, "prune_images")
+
+    with pytest.raises(RuntimeError, match="Not enough free disk"):
+        updater.ensure_disk_headroom()
