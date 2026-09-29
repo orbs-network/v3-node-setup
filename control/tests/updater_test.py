@@ -291,3 +291,70 @@ def test_a_node_outside_the_target_list_is_left_alone(mocker: MockerFixture) -> 
     updater.compare()
 
     trigger.assert_not_called()
+
+
+def test_the_checkout_lands_on_the_configured_branch(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the working copy is left on a branch rather than detached"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/feature/v5-ready:docker-compose.yml")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    checkout = next(c.args[0] for c in run.call_args_list if c.args[0][:2] == ["git", "checkout"])
+
+    assert checkout == ["git", "checkout", "-f", "-B", "feature/v5-ready", "deadbeef"]
+
+
+def test_the_checkout_falls_back_to_detached_without_a_branch(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that an unreadable branch name still applies the commit"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "no-colon-here")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "extract_branch_name", return_value=None)
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    checkout = next(c.args[0] for c in run.call_args_list if c.args[0][:2] == ["git", "checkout"])
+
+    assert checkout == ["git", "checkout", "-f", "deadbeef"]
+
+
+def test_an_update_no_longer_stashes(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that updates leave no stash behind, since none was ever dropped"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/main:docker-compose.yml")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    assert ["git", "stash"] not in [c.args[0] for c in run.call_args_list]
+
+
+def test_local_modifications_are_reported_before_being_discarded(mocker: MockerFixture) -> None:
+    """Test that edits about to be thrown away are named in the log and the status"""
+
+    mocker.patch.object(updater, "run", return_value=" M nginx/conf.d/default.conf\n M docker-compose.yml")
+    status = mocker.patch.object(updater, "set_status_for_ui")
+
+    updater.report_local_modifications()
+
+    assert "nginx/conf.d/default.conf" in status.call_args[0][0]
+    assert "docker-compose.yml" in status.call_args[0][0]
+
+
+def test_a_clean_tree_reports_nothing(mocker: MockerFixture) -> None:
+    """Test that the usual case is silent"""
+
+    mocker.patch.object(updater, "run", return_value="")
+    status = mocker.patch.object(updater, "set_status_for_ui")
+
+    updater.report_local_modifications()
+
+    status.assert_not_called()

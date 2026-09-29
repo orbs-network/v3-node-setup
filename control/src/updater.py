@@ -194,6 +194,24 @@ def ensure_disk_headroom():
     logger.info(f"{free_gb:.1f}GB free after pruning, enough to pull")
 
 
+def report_local_modifications():
+    """Records any local edits to tracked files, which the checkout is about to discard"""
+
+    # Untracked files are excluded: the checkout leaves those alone, so they are not
+    # about to be lost and do not belong in this warning.
+    changes = run(["git", "status", "--porcelain", "--untracked-files=no"])
+
+    if not changes:
+        return
+
+    files = " ".join(line[3:] for line in changes.splitlines() if len(line) > 3)
+
+    # A node is a deployment target rather than somewhere to edit, so a modified tracked
+    # file is itself the anomaly worth surfacing - not just the fact it is being dropped.
+    logger.error(f"Discarding local modifications to tracked files: {files}")
+    set_status_for_ui(f"Discarded local modifications: {files}")
+
+
 def get_applied_commit():
     """Returns the commit whose update last completed, or an empty string if none has"""
 
@@ -396,12 +414,20 @@ def trigger_update(scheduled_commit_hash):
     logger.info("Fetching latest changes")
     run(["git", "fetch", "origin"])
 
-    # stash any local changes
-    logger.info("Stashing any local changes")
-    run(["git", "stash"])
+    report_local_modifications()
+
+    branch = extract_branch_name()
 
     logger.info(f"Checking out commit {scheduled_commit_hash}")
-    run(["git", "checkout", scheduled_commit_hash])
+
+    if branch:
+        # -B leaves the working copy on the configured branch instead of detached, so the
+        # state is legible to anyone who logs in. -f discards local edits to tracked files
+        # rather than stashing them, which used to leave a stash behind on every update
+        # and never dropped one.
+        run(["git", "checkout", "-f", "-B", branch, scheduled_commit_hash])
+    else:
+        run(["git", "checkout", "-f", scheduled_commit_hash])
 
     ensure_disk_headroom()
 
