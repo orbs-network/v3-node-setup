@@ -1,13 +1,20 @@
 import hashlib
 import os
+import json
 import re
 import subprocess
 from datetime import datetime, timedelta
 
 import requests
 import yaml
+from config import CONTROL_DIR
 from logger import logger
 from utils import run
+
+# The commit whose update ran all the way through, which is not the same thing as the
+# commit that is checked out: the checkout happens first, so a compose failure leaves the
+# working copy at the target while nothing was actually applied.
+applied_commit_file = os.path.join(CONTROL_DIR, "applied_commit.json")
 
 globalError = ""
 statusForUi = []
@@ -156,6 +163,30 @@ def get_current_git_commit_hash():
         return None
 
 
+def get_applied_commit():
+    """Returns the commit whose update last completed, or an empty string if none has"""
+
+    try:
+        with open(applied_commit_file, encoding="utf8") as file:
+            return json.load(file).get("commit", "")
+    except (OSError, ValueError, AttributeError):
+        return ""
+
+
+def set_applied_commit(commit_hash):
+    """Records that the update for this commit ran all the way through"""
+
+    logger.info(f"Recording {commit_hash} as applied")
+
+    try:
+        with open(applied_commit_file, "w", encoding="utf8") as file:
+            json.dump({"commit": commit_hash, "applied_at": datetime.now().isoformat()}, file, indent=4)
+    except OSError as error:
+        # Losing the marker means the next poll retries an update that already succeeded,
+        # which is wasteful but safe. Failing the poll over it would not be.
+        logger.error(f"Could not record the applied commit: {error}")
+
+
 def get_guardian_node_id():
     return os.getenv("NODE_ADDRESS", None)
 
@@ -268,12 +299,31 @@ def compare():
 
     updateTargetTime = 0
 
-    if current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash:
+    is_checked_out = current_commit_hash.startswith(scheduled_commit_hash) or current_git_tag == scheduled_commit_hash
+    applied_commit = get_applied_commit()
+
+    if not applied_commit:
+        # First poll since this check existed. Adopt whatever is checked out rather than
+        # forcing an update, so introducing the marker does not restart every node's
+        # services to tell us something we can already see.
+        applied_commit = current_commit_hash
+        set_applied_commit(current_commit_hash)
+        logger.info(f"No applied commit on record, adopting the checked out {current_commit_hash}")
+
+    if is_checked_out and applied_commit == current_commit_hash:
         logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
         set_status_for_ui(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}")
     else:
-        logger.info(f"I need to update, current commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
-        set_status_for_ui(f"Update in progress for commit hash: {scheduled_commit_hash}")
+        if is_checked_out:
+            # The checkout landed but the update did not finish, so the working copy looks
+            # current while nothing was applied. Without this the node would report itself
+            # up to date forever.
+            logger.info(f"Commit {current_commit_hash} is checked out but was never applied, retrying")
+            set_status_for_ui(f"Retrying an update that did not complete for {current_commit_hash}")
+        else:
+            logger.info(f"I need to update, current commit hash: {current_commit_hash}, scheduled commit hash: {scheduled_commit_hash}")
+            set_status_for_ui(f"Update in progress for commit hash: {scheduled_commit_hash}")
+
         trigger_update(scheduled_commit_hash)
 
     isInUpdatingState = False
@@ -307,5 +357,9 @@ def trigger_update(scheduled_commit_hash):
 
     logger.info(f"Running docker compose -f {docker_compose_file} up -d")
     run(["docker", "compose", "-f", docker_compose_file, "up", "-d"])
+
+    # Only reached when every step above succeeded, since they raise otherwise. Recording
+    # the checked out commit rather than the requested one, so a tag resolves to a hash.
+    set_applied_commit(get_current_git_commit_hash())
 
     logger.info("Update completed")
