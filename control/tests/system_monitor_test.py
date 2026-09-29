@@ -51,6 +51,7 @@ def test_get_initial_response(mocker: MockerFixture) -> None:
         "Extra": "",
         "Payload": {
             "Version": {"Semantic": ""},
+            "Identity": {"NodeAddress": ""},
             "Metrics": {},
             "Services": {},
             "ImageDrift": [],
@@ -94,3 +95,36 @@ def test_a_deleted_image_does_not_break_the_report(mocker: MockerFixture) -> Non
 
     assert services[0]["ImageTag"] == "nginx:latest"
     assert services[0]["ImageDigest"] == ""
+
+
+def test_node_address_gets_the_missing_prefix(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that the address stored without 0x is reported with it"""
+
+    # generate_wallet.py strips the prefix before storing, but consumers expect one.
+    monkeypatch.setenv("NODE_ADDRESS", "481029997EFfD67A74b48C98D763e2a2147e68A6")
+
+    assert SystemMonitor(client=mocker.Mock())._get_node_address() == "0x481029997EFfD67A74b48C98D763e2a2147e68A6"
+
+
+def test_node_address_keeps_an_existing_prefix(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that an address already carrying 0x is not given a second one"""
+
+    monkeypatch.setenv("NODE_ADDRESS", "0xabc123")
+
+    assert SystemMonitor(client=mocker.Mock())._get_node_address() == "0xabc123"
+
+
+def test_node_address_preserves_checksum_casing(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that the EIP-55 mixed case is left intact"""
+
+    monkeypatch.setenv("NODE_ADDRESS", "481029997EFfD67A74b48C98D763e2a2147e68A6")
+
+    assert SystemMonitor(client=mocker.Mock())._get_node_address().endswith("EFfD67A74b48C98D763e2a2147e68A6")
+
+
+def test_a_missing_node_address_reports_empty(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that an unconfigured node reports an empty address rather than raising"""
+
+    monkeypatch.delenv("NODE_ADDRESS", raising=False)
+
+    assert SystemMonitor(client=mocker.Mock())._get_node_address() == ""
