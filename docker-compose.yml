@@ -14,10 +14,14 @@
 # commit: latest
 # ---- UPDATE-DESCRIPTOR-END ----
 
+# 50m x 3 caps each service at 150MB and the whole stack at about 1.5GB, down from a
+# theoretical 6GB. Not tighter than that on purpose: container logs are what identified a
+# three month ethereum-writer hang, by showing exactly when its run loop stopped, so the
+# window needs to stay wide enough to diagnose something that has been failing for a while.
 x-logging: &default-logging
   driver: "json-file"
   options:
-    max-size: "200m"
+    max-size: "50m"
     max-file: "3"
 
 services:
