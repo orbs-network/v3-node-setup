@@ -106,7 +106,7 @@ def registry_digests(client: docker.DockerClient, image_refs: list[str], now: fl
 def check(client: docker.DockerClient, compose_file: str) -> list[dict]:
     """Returns one record per compose service whose running image is not what compose asks for"""
 
-    logger.info("Checking for image drift against %s", compose_file)
+    logger.debug("Checking for image drift against %s", compose_file)
 
     expected = compose_images(compose_file)
     digests = registry_digests(client, sorted(set(expected.values())), time.time())
@@ -149,7 +149,7 @@ def check(client: docker.DockerClient, compose_file: str) -> list[dict]:
         if record["ContainerOutdated"] or record["ImageOutdated"] or not record["Running"]:
             drifted.append(record)
 
-    logger.info("Image drift check found %d drifted service(s)", len(drifted))
+    logger.debug("Image drift check found %d drifted service(s)", len(drifted))
 
     return drifted
 

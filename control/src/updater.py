@@ -85,14 +85,13 @@ def fetch_remote_descriptor():
     url = os.getenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/main:deployment/docker-compose.yml")
 
     try:
-        logger.info(f"Fetching remote descriptor from remote git {url}")
+        logger.debug(f"Fetching remote descriptor from remote git {url}")
         data = os.popen(f"git fetch origin").read()
-        logger.info(f"Fetch result: {data}")
+        logger.debug(f"Fetch result: {data}")
         data = os.popen(f"git show {url}").read()
         # response = requests.get(url)
         # response.raise_for_status()  # Check for HTTP errors
         # data = response.text
-        print (f"Fetched data: {data[:200]}...")  # Print the first 200 characters for verification
     except requests.exceptions.RequestException as e:
         logger.error(f"An error occurred while fetching the file: {e}")
         data = None
@@ -102,7 +101,7 @@ def fetch_remote_descriptor():
 
 def fetch_and_parse_metadata():
     # try:
-    logger.info("Fetching and parsing metadata...")
+    logger.debug("Fetching and parsing metadata...")
     content = fetch_remote_descriptor()
 
     # Extract the metadata section
@@ -136,7 +135,7 @@ def fetch_and_parse_metadata():
 
 # def get_current_git_tag ():
 #     try:
-#         logger.info("Fetching current git tag...")
+#         logger.debug("Fetching current git tag...")
 #         tag = os.popen("git describe --tags $(git rev-list --tags --max-count=1)").read().strip()
 #         return tag
 #     except Exception as e:
@@ -145,19 +144,22 @@ def fetch_and_parse_metadata():
 
 
 def get_current_git_tag():
-    try:
-        logger.info("Fetching current git tag...")
-        tag = os.popen("git describe --tags --exact-match").read().strip()
-        return tag
-    except Exception as e:
-        logger.error(f"An error occurred while fetching the current git tag: {e}")
-        return None
+    """Returns the tag at HEAD, or an empty string when there is none.
+
+    The updater checks out commit hashes, so an untagged detached HEAD is the normal
+    state rather than a failure. git reports that on stderr, which os.popen let through
+    to the log on every single poll, so it is captured and discarded here.
+    """
+
+    result = subprocess.run(["git", "describe", "--tags", "--exact-match"], capture_output=True, text=True, check=False)
+
+    return result.stdout.strip()
 
 
 def get_current_git_commit_hash():
     try:
         commit_hash = os.popen("git rev-parse HEAD").read().strip()
-        logger.info(f"Fetching current git commit hash {commit_hash}")
+        logger.debug(f"Fetching current git commit hash {commit_hash}")
         return commit_hash
     except Exception as e:
         logger.error(f"An error occurred while fetching the current git commit hash: {e}")
@@ -242,7 +244,7 @@ def get_timestamp_of_commit_hash(commit_hash):
     try:
         unixtime = os.popen(f"git show -s --format=%ct {commit_hash}").read().strip()
         timestamp = datetime.fromtimestamp(int(unixtime))
-        logger.info(f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
+        logger.debug(f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
 
         return timestamp
 
@@ -281,7 +283,7 @@ def get_remote_latest_commit_hash():
     # Step 2: Get the latest commit ID from the remote for the current branch
     commit_id = subprocess.check_output(["git", "ls-remote", "origin", branch_name], text=True).split()[0]
 
-    logger.info(f"Latest commit hash for branch {branch_name}: {commit_id}")
+    logger.debug(f"Latest commit hash for branch {branch_name}: {commit_id}")
 
     return commit_id
 
@@ -289,7 +291,7 @@ def get_remote_latest_commit_hash():
 def compare():
     global isInUpdatingState, updateTargetTime
 
-    logger.info("Comparing current state with metadata")
+    logger.debug("Comparing current state with metadata")
 
     metadata = fetch_and_parse_metadata()
     guardian_node_id = get_guardian_node_id()
@@ -306,7 +308,7 @@ def compare():
             am_i_a_target = True
             break
 
-    logger.info(f"Am I a target node? {am_i_a_target}")
+    logger.debug(f"Am I a target node? {am_i_a_target}")
 
     if not am_i_a_target:
         return
@@ -315,7 +317,7 @@ def compare():
     update_in_action = metadata.get("updateInAction", False)
 
     if not update_in_action:
-        logger.info("Update is NOT in action, skipping")
+        logger.debug("Update is NOT in action, skipping")
         return
 
     # Check if I need to update myself.

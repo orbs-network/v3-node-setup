@@ -33,7 +33,7 @@ def run(command: list[str], check: bool = True) -> str:
         CommandError: If the command exits non-zero and `check` is set.
     """
 
-    logger.info("Running command: %s", " ".join(command))
+    logger.debug("Running command: %s", " ".join(command))
 
     result = subprocess.run(command, capture_output=True, text=True, check=False)
 

@@ -44,7 +44,7 @@ class SystemMonitor:
     _client: docker.DockerClient
 
     def __init__(self, client: docker.DockerClient) -> None:
-        logger.info("Initializing SystemMonitor.")
+        logger.debug("Initializing SystemMonitor.")
 
         self.metrics = {}
         self.services = {}
@@ -63,7 +63,7 @@ class SystemMonitor:
     def get(self) -> Status:
         """Returns the current status of the system"""
 
-        logger.info("Fetching current system status.")
+        logger.debug("Fetching current system status.")
 
         return Status(
             Timestamp=self.timestamp,
@@ -104,7 +104,7 @@ class SystemMonitor:
     def update(self) -> None:
         """Updates the status of the system"""
 
-        logger.info("Updating system metrics and services info")
+        logger.debug("Updating system metrics and services info")
 
         now = datetime.now()
         metrics = self._get_metrics(now)
@@ -129,8 +129,8 @@ class SystemMonitor:
         self.version = self._get_version()
         self.node_address = self._get_node_address()
 
-        logger.info("Current version: %s", self.version)
-        logger.info("System status updated.")
+        logger.debug("Current version: %s", self.version)
+        logger.debug("System status updated.")
 
     def _get_image_drift(self) -> list[dict]:
         """Returns the services whose running image is not what the compose file asks for"""
@@ -193,7 +193,7 @@ class SystemMonitor:
     def persist(self, status_file_path: str) -> None:
         """Persists the status of the system to a file"""
 
-        logger.info("Persisting system status to file: %s", status_file_path)
+        logger.debug("Persisting system status to file: %s", status_file_path)
 
         with open(status_file_path, "w", encoding="utf8") as file:
             json.dump(self.get(), file, indent=4)
@@ -201,7 +201,7 @@ class SystemMonitor:
     def _get_metrics(self, now: datetime) -> dict:
         """Returns a dictionary of system metrics (CPU, memory, disk, etc)"""
 
-        logger.info("Fetching system metrics.")
+        logger.debug("Fetching system metrics.")
 
         # Get uptime by subtracting the boot time from the current time
         boot_time = now.timestamp() - psutil.boot_time()
@@ -234,7 +234,7 @@ class SystemMonitor:
     def _get_disk_info(self) -> list[dict]:
         """Returns a list of disk usage information"""
 
-        logger.info("Fetching disk usage information.")
+        logger.debug("Fetching disk usage information.")
 
         disk_info = []
 
@@ -253,7 +253,7 @@ class SystemMonitor:
     def _get_process_info(self) -> list[dict]:
         """Returns a list of system processes and their memory usage"""
 
-        logger.info("Fetching system process information.")
+        logger.debug("Fetching system process information.")
 
         process_info = []
 
@@ -283,12 +283,12 @@ class SystemMonitor:
     def _get_docker_service_info(self) -> list[dict]:
         """Returns a list of running Docker containers and their details"""
 
-        logger.info("Fetching Docker container information.")
+        logger.debug("Fetching Docker container information.")
 
         service_info = []
 
         for container in self._client.containers.list():
-            logger.info("Container: %s", container.name)
+            logger.debug("Container: %s", container.name)
             container_attrs = container.attrs
             image = container_attrs.get("Image")
             if image is None:
@@ -320,7 +320,7 @@ class SystemMonitor:
 
             service_info.append(service_data)
 
-        logger.info("Fetching done.")
+        logger.debug("Fetching done.")
 
         return service_info
 
