@@ -90,7 +90,7 @@ def _stub_compare(mocker: MockerFixture, current: str, scheduled: str) -> object
         "updateMode": "immediate",
         "commit": "latest",
     })
-    mocker.patch.object(updater, "get_guardian_node_id", return_value="node-1")
+    mocker.patch.object(updater, "get_node_address", return_value="0xnode1")
     mocker.patch.object(updater, "get_current_git_commit_hash", return_value=current)
     mocker.patch.object(updater, "get_current_git_tag", return_value="")
     mocker.patch.object(updater, "get_remote_latest_commit_hash", return_value=scheduled)
@@ -197,3 +197,97 @@ def test_low_disk_aborts_when_pruning_does_not_free_enough(mocker: MockerFixture
 
     with pytest.raises(RuntimeError, match="Not enough free disk"):
         updater.ensure_disk_headroom()
+
+
+def test_branch_name_keeps_every_segment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a branch containing slashes is not truncated to its last segment"""
+
+    # Truncating gave "v5-ready", which git matched by trailing path component until two
+    # branches shared a final segment - then ls-remote returns both and picking the first
+    # silently deploys the wrong commit.
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/feature/v5-ready:docker-compose.yml")
+
+    assert updater.extract_branch_name() == "feature/v5-ready"
+
+
+def test_branch_name_handles_a_single_segment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a plain remote/branch pair still resolves"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/main:docker-compose.yml")
+
+    assert updater.extract_branch_name() == "main"
+
+
+def test_an_unset_remote_path_says_so(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a missing setting is reported as itself, not as a missing descriptor"""
+
+    monkeypatch.delenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", raising=False)
+
+    with pytest.raises(ValueError, match="DOCKER_COMPOSE_REMOTE_GIT_PATH is not set"):
+        updater.get_remote_git_path()
+
+
+def test_an_unresolvable_branch_is_reported(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that ls-remote returning nothing raises a message naming the branch"""
+
+    # ls-remote exits zero and prints nothing, so .split()[0] used to raise IndexError.
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/nope:docker-compose.yml")
+    mocker.patch.object(updater, "run", return_value="")
+
+    with pytest.raises(ValueError, match="does not resolve"):
+        updater.get_remote_latest_commit_hash()
+
+
+def test_an_ambiguous_branch_refuses_to_guess(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a name matching several refs raises rather than picking one"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/v5-ready:docker-compose.yml")
+    mocker.patch.object(updater, "run", return_value="aaa111\trefs/heads/feature/v5-ready\nbbb222\trefs/heads/hotfix/v5-ready")
+
+    with pytest.raises(ValueError, match="refusing to guess"):
+        updater.get_remote_latest_commit_hash()
+
+
+def test_a_resolvable_branch_returns_its_commit(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the normal case returns the commit at the branch tip"""
+
+    monkeypatch.setenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/feature/v5-ready:docker-compose.yml")
+    mocker.patch.object(updater, "run", return_value="97ef0d59ae475c12bac372c1f5a75cb28a854ff5\trefs/heads/feature/v5-ready")
+
+    assert updater.get_remote_latest_commit_hash() == "97ef0d59ae475c12bac372c1f5a75cb28a854ff5"
+
+
+def test_a_target_matches_despite_prefix_and_casing(mocker: MockerFixture) -> None:
+    """Test that a descriptor written with 0x still targets this node"""
+
+    trigger = _stub_compare(mocker, current="abc123", scheduled="abc123")
+    mocker.patch.object(updater, "get_node_address", return_value="0x481029997EFfD67A74b48C98D763e2a2147e68A6")
+    mocker.patch.object(updater, "fetch_and_parse_metadata", return_value={
+        "targetNodes": [{"id": "0x481029997effd67a74b48c98d763e2a2147e68a6"}],
+        "updateInAction": True,
+        "updateMode": "immediate",
+        "commit": "latest",
+    })
+    updater.set_applied_commit("older99")
+
+    updater.compare()
+
+    trigger.assert_called_once()
+
+
+def test_a_node_outside_the_target_list_is_left_alone(mocker: MockerFixture) -> None:
+    """Test that a descriptor naming other nodes does not trigger an update here"""
+
+    trigger = _stub_compare(mocker, current="abc123", scheduled="abc123")
+    mocker.patch.object(updater, "get_node_address", return_value="0xaaa")
+    mocker.patch.object(updater, "fetch_and_parse_metadata", return_value={
+        "targetNodes": [{"id": "0xbbb"}],
+        "updateInAction": True,
+        "updateMode": "immediate",
+        "commit": "latest",
+    })
+    updater.set_applied_commit("older99")
+
+    updater.compare()
+
+    trigger.assert_not_called()

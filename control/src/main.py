@@ -6,7 +6,7 @@ from config import status_file
 from logger import logger
 from system_monitor import SystemMonitor
 import updater
-from updater import get_guardian_node_id
+from identity import get_node_address
 from utils import run_command
 from os import getenv
 
@@ -27,7 +27,7 @@ def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
 
-    logger.debug(f"Running control on node [{get_guardian_node_id()}] ...")
+    logger.debug(f"Running control on node [{get_node_address()}] ...")
     updater.set_error("")
 
     # TODO - add back when we split into separate repos

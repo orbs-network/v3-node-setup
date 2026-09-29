@@ -26,8 +26,8 @@ def _with_prefix(address: str) -> str:
     return address if not address or address.startswith("0x") else f"0x{address}"
 
 
-def _bare(address: str) -> str:
-    """Returns the address lowercased and unprefixed, for comparing two spellings"""
+def bare_address(address: str) -> str:
+    """Returns the address lowercased and unprefixed, for comparing two spellings of one address"""
 
     return address.lower().removeprefix("0x")
 
@@ -71,10 +71,10 @@ def resolve_eth_address(node_address: str) -> tuple[str, str]:
 
     # The topology carries neither address with a 0x prefix and holds OrbsAddress in
     # lowercase, while NODE_ADDRESS is EIP-55 mixed case, so both have to be normalised.
-    wanted = _bare(node_address)
+    wanted = bare_address(node_address)
 
     for entry in topology:
-        if _bare(entry.get("OrbsAddress", "")) == wanted:
+        if bare_address(entry.get("OrbsAddress", "")) == wanted:
             return _with_prefix(entry.get("EthAddress", "")), REGISTERED
 
     return "", UNREGISTERED

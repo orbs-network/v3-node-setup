@@ -6,9 +6,9 @@ import shutil
 import subprocess
 from datetime import datetime, timedelta
 
-import requests
 import yaml
 from config import CONTROL_DIR
+from identity import bare_address, get_node_address
 from logger import logger
 from utils import run
 
@@ -22,16 +22,8 @@ statusForUi = []
 isInUpdatingState = False
 updateTargetTime = 0
 
-# ---- UPDATE-DESCRIPTOR-BEGIN ----
-# targetNodes:
-#   - id: 8c824c84e03de12e73fe286222c00faa3d8fd152
-#   - id: 1c824c84e03de12e73fe286222c00faa3d8fd152
-#   - id: *
-# updateResolution: 1440
-# updateMode: immediate , scheduled
-# updateInAction: false
-# commit: 64816f4876aa1483ba79ee5e9b061985ccd2b6b1
-# ---- UPDATE-DESCRIPTOR-END ----
+# The descriptor that actually drives updates lives at the top of docker-compose.yml on
+# the remote branch. It is read from there, never from this file.
 
 
 def get_updating_state_for_ui():
@@ -80,23 +72,34 @@ def get_error():
     return globalError
 
 
+def get_remote_git_path():
+    """Returns the configured remote path to the descriptor, eg. `origin/main:docker-compose.yml`
+
+    There is deliberately no default. The previous one pointed at a file on `origin/main`
+    that carries no descriptor at all, so an unset variable failed later with a message
+    about a missing descriptor section rather than about the missing setting.
+    """
+
+    path = os.getenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "").strip()
+
+    if not path:
+        raise ValueError("DOCKER_COMPOSE_REMOTE_GIT_PATH is not set, so there is no descriptor to read")
+
+    return path
+
+
 def fetch_remote_descriptor():
-    # url = os.getenv('DOCKER_COMPOSE_DESCRIPTOR_URL', "https://raw.githubusercontent.com/orbs-network/v3-node-setup/refs/heads/main/deployment/docker-compose.yml")
-    url = os.getenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/main:deployment/docker-compose.yml")
+    """Returns the contents of the descriptor file on the configured remote branch"""
 
-    try:
-        logger.debug(f"Fetching remote descriptor from remote git {url}")
-        data = os.popen(f"git fetch origin").read()
-        logger.debug(f"Fetch result: {data}")
-        data = os.popen(f"git show {url}").read()
-        # response = requests.get(url)
-        # response.raise_for_status()  # Check for HTTP errors
-        # data = response.text
-    except requests.exceptions.RequestException as e:
-        logger.error(f"An error occurred while fetching the file: {e}")
-        data = None
+    path = get_remote_git_path()
 
-    return data
+    logger.debug(f"Fetching remote descriptor from remote git {path}")
+
+    # Both raise with git's own message if they fail, rather than returning empty content
+    # that only fails later as a confusing "descriptor section not found".
+    run(["git", "fetch", "origin"])
+
+    return run(["git", "show", path])
 
 
 def fetch_and_parse_metadata():
@@ -122,26 +125,6 @@ def fetch_and_parse_metadata():
     metadata_dict = yaml.safe_load(metadata_content)
     return metadata_dict
 
-    # except requests.exceptions.RequestException as e:
-    #     print(f"An error occurred while fetching the file: {e}")
-    #     return None
-    # except ValueError as e:
-    #     print(f"Error: {e}")
-    #     return None
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
-    #     return None
-
-
-# def get_current_git_tag ():
-#     try:
-#         logger.debug("Fetching current git tag...")
-#         tag = os.popen("git describe --tags $(git rev-list --tags --max-count=1)").read().strip()
-#         return tag
-#     except Exception as e:
-#         logger.error(f"An error occurred while fetching the current git tag: {e}")
-#         return None
-
 
 def get_current_git_tag():
     """Returns the tag at HEAD, or an empty string when there is none.
@@ -157,13 +140,12 @@ def get_current_git_tag():
 
 
 def get_current_git_commit_hash():
-    try:
-        commit_hash = os.popen("git rev-parse HEAD").read().strip()
-        logger.debug(f"Fetching current git commit hash {commit_hash}")
-        return commit_hash
-    except Exception as e:
-        logger.error(f"An error occurred while fetching the current git commit hash: {e}")
-        return None
+    """Returns the commit currently checked out"""
+
+    commit_hash = run(["git", "rev-parse", "HEAD"])
+    logger.debug(f"Fetching current git commit hash {commit_hash}")
+
+    return commit_hash
 
 
 def get_free_disk_gb():
@@ -236,25 +218,20 @@ def set_applied_commit(commit_hash):
         logger.error(f"Could not record the applied commit: {error}")
 
 
-def get_guardian_node_id():
-    return os.getenv("NODE_ADDRESS", None)
-
-
 def get_timestamp_of_commit_hash(commit_hash):
-    try:
-        unixtime = os.popen(f"git show -s --format=%ct {commit_hash}").read().strip()
-        timestamp = datetime.fromtimestamp(int(unixtime))
-        logger.debug(f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
+    """Returns when the commit was made, used to anchor a scheduled update window"""
 
-        return timestamp
+    unixtime = run(["git", "show", "-s", "--format=%ct", commit_hash])
+    timestamp = datetime.fromtimestamp(int(unixtime))
+    logger.debug(f"Baseline commit hash timestamp: {timestamp} for commit: {commit_hash}")
 
-    except Exception as e:
-        logger.error(f"An error occurred while fetching the timestamp of commit hash: {e}")
-        return None
+    return timestamp
 
 
 def get_my_update_schedule_window_time(spread_minutes, commit_hash):
-    hash_value = get_guardian_node_id()
+    # Hashed in its normalised form so the window a node lands in does not move just
+    # because the address was written with a prefix or in different casing.
+    hash_value = bare_address(get_node_address())
     hash_int = int(hashlib.sha256(hash_value.encode()).hexdigest(), 16)
     minute_of_day = hash_int % spread_minutes
     # today = datetime.now().replace(second=0, microsecond=0)
@@ -268,20 +245,39 @@ def get_my_update_schedule_window_time(spread_minutes, commit_hash):
 def extract_branch_name():
     git_url = os.getenv("DOCKER_COMPOSE_REMOTE_GIT_PATH", "origin/main:deployment/docker-compose.yml")
 
-    if ":" in git_url:
-        branch = git_url.split(":")[0]  # Get the part before the colon
-        if "/" in branch:
-            return branch.split("/")[-1]  # Get the part after the last '/'
-        return branch
-    return None  # Return None if format is invalid
+    ref = git_url.split(":")[0]
+
+    if "/" not in ref:
+        return ref
+
+    # Strip only the remote name. Keeping just the last segment turned feature/v5-ready
+    # into v5-ready, which git happened to still match by trailing path component - right
+    # up until two branches share a final segment, when ls-remote returns both.
+    _, _, branch = ref.partition("/")
+
+    return branch
 
 
 def get_remote_latest_commit_hash():
-    # Step 1: Get the current branch name
+    """Returns the commit at the tip of the configured remote branch"""
+
     branch_name = extract_branch_name()
 
-    # Step 2: Get the latest commit ID from the remote for the current branch
-    commit_id = subprocess.check_output(["git", "ls-remote", "origin", branch_name], text=True).split()[0]
+    if not branch_name:
+        raise ValueError(f"Could not read a branch name from DOCKER_COMPOSE_REMOTE_GIT_PATH: {get_remote_git_path()}")
+
+    matches = [line for line in run(["git", "ls-remote", "origin", branch_name]).splitlines() if line.strip()]
+
+    # ls-remote exits zero and prints nothing when the branch does not resolve, and prints
+    # several lines when the name is ambiguous. Taking the first field of either would be
+    # an IndexError or, worse, silently the wrong commit.
+    if not matches:
+        raise ValueError(f"Branch {branch_name} does not resolve to a commit on origin")
+
+    if len(matches) > 1:
+        raise ValueError(f"Branch {branch_name} matches {len(matches)} refs on origin, refusing to guess between them")
+
+    commit_id = matches[0].split()[0]
 
     logger.debug(f"Latest commit hash for branch {branch_name}: {commit_id}")
 
@@ -294,17 +290,20 @@ def compare():
     logger.debug("Comparing current state with metadata")
 
     metadata = fetch_and_parse_metadata()
-    guardian_node_id = get_guardian_node_id()
+    node_address = get_node_address()
 
-    if guardian_node_id is None:
-        logger.error("Guardian node ID not found")
+    if not node_address:
+        logger.error("NODE_ADDRESS is not set, cannot tell whether this node is a target")
         return
 
-    # Check if I'm in the target list in any way.
+    # Check if I'm in the target list in any way. Both sides are normalised, so a
+    # descriptor written with a 0x prefix or different casing still matches.
     target_nodes = metadata.get("targetNodes", [])
+    wanted = bare_address(node_address)
     am_i_a_target = False
     for node in target_nodes:
-        if node.get("id") == guardian_node_id or node.get("id") == "*":
+        node_id = str(node.get("id", ""))
+        if node_id == "*" or bare_address(node_id) == wanted:
             am_i_a_target = True
             break
 
