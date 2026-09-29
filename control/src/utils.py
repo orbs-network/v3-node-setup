@@ -9,6 +9,55 @@ from typing import Optional
 from logger import logger
 
 
+class CommandError(RuntimeError):
+    """Raised when a command exits with a non-zero status."""
+
+    def __init__(self, command: list[str], returncode: int, output: str) -> None:
+        self.command = command
+        self.returncode = returncode
+        self.output = output
+        super().__init__(f"Command '{' '.join(command)}' exited with status {returncode}: {output}")
+
+
+def run(command: list[str], check: bool = True) -> str:
+    """Runs a command, logging both of its output streams.
+
+    Args:
+        command: The command and its arguments (eg. `["docker", "compose", "up", "-d"]`).
+        check: Whether to raise `CommandError` when the command exits non-zero.
+
+    Returns:
+        The command's stdout, stripped.
+
+    Raises:
+        CommandError: If the command exits non-zero and `check` is set.
+    """
+
+    logger.info("Running command: %s", " ".join(command))
+
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+
+    stdout = result.stdout.strip()
+    stderr = result.stderr.strip()
+
+    if stdout:
+        logger.info(stdout)
+
+    # docker compose reports its normal progress on stderr, so output there does not mean
+    # the command failed - only the exit status tells us that.
+    if stderr:
+        (logger.error if result.returncode != 0 else logger.info)(stderr)
+
+    if result.returncode != 0:
+        error = CommandError(command, result.returncode, stderr or stdout)
+        logger.error(str(error))
+
+        if check:
+            raise error
+
+    return stdout
+
+
 def run_command(command: str) -> Optional[str]:
     """Runs a shell command and returns the error message (if any).
 

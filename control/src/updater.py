@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import requests
 import yaml
 from logger import logger
+from utils import run
 
 globalError = ""
 statusForUi = []
@@ -286,24 +287,25 @@ def trigger_update(scheduled_commit_hash):
         logger.info("DONT_UPDATE is set to true, skipping update")
         return
 
+    # Read this before touching the checkout, so a missing setting fails the update before
+    # it has moved the working copy halfway to the new commit.
+    docker_compose_file = os.getenv("DOCKER_COMPOSE_FILE")
+    if not docker_compose_file:
+        raise ValueError("DOCKER_COMPOSE_FILE is not set, cannot apply the update")
+
     # fetch latest changes.
 
     logger.info("Fetching latest changes")
-    res = os.popen("git fetch origin").read()
-    logger.info(res)
+    run(["git", "fetch", "origin"])
 
     # stash any local changes
     logger.info("Stashing any local changes")
-    res = os.popen("git stash").read()
-    logger.info(res)
+    run(["git", "stash"])
 
     logger.info(f"Checking out commit {scheduled_commit_hash}")
-    res = os.popen(f"git checkout {scheduled_commit_hash}").read()
-    logger.info(res)
+    run(["git", "checkout", scheduled_commit_hash])
 
-    docker_compose_file = os.getenv("DOCKER_COMPOSE_FILE")
     logger.info(f"Running docker compose -f {docker_compose_file} up -d")
-    res = os.popen(f"docker compose -f {docker_compose_file} up -d").read()
-    logger.info(res)
+    run(["docker", "compose", "-f", docker_compose_file, "up", "-d"])
 
     logger.info("Update completed")
