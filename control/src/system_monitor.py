@@ -2,6 +2,7 @@
 
 import subprocess
 import json
+import os
 import subprocess
 from datetime import datetime
 
@@ -9,9 +10,10 @@ import docker
 import psutil
 import updater
 
+import image_drift
 from logger import logger
 from system_monitor_types import Payload, Status, Version
-from updater import get_error, get_status_for_ui, get_updating_state_for_ui
+from updater import get_error, get_status_for_ui, get_updating_state_for_ui, set_status_for_ui
 
 
 class SystemMonitor:
@@ -33,6 +35,7 @@ class SystemMonitor:
     extra: str = ""
     metrics: dict
     services: dict
+    image_drift: list
     start_time: float
     version: str = ""
 
@@ -43,6 +46,7 @@ class SystemMonitor:
 
         self.metrics = {}
         self.services = {}
+        self.image_drift = []
         self.version = ""
         self.start_time = datetime.now().timestamp()
 
@@ -68,6 +72,7 @@ class SystemMonitor:
                 Version=Version(Semantic=self.version),
                 Metrics=self.metrics,
                 Services=self.services,
+                ImageDrift=self.image_drift,
             ),
         )
 
@@ -102,6 +107,9 @@ class SystemMonitor:
         metrics = self._get_metrics(now)
         timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
+        # Collected before the status is read, so any drift makes it into this same report.
+        self.image_drift = self._get_image_drift()
+
         # self.timestamp = now.isoformat()
         self.timestamp = timestamp
         # self.status = f"RAM = {round(metrics['MemoryUsedMBytes'], 2)}mb, CPU = {metrics['CPULoadPercent']}%"
@@ -119,6 +127,31 @@ class SystemMonitor:
 
         logger.info("Current version: %s", self.version)
         logger.info("System status updated.")
+
+    def _get_image_drift(self) -> list[dict]:
+        """Returns the services whose running image is not what the compose file asks for"""
+
+        compose_file = os.getenv("DOCKER_COMPOSE_FILE")
+
+        if not compose_file:
+            logger.error("DOCKER_COMPOSE_FILE is not set, skipping the image drift check")
+            return []
+
+        try:
+            drifted = image_drift.check(self._client, compose_file)
+        except Exception as error:  # pylint: disable=broad-except
+            # Drift reporting must never take the poll down with it - a node that cannot
+            # check is still a node that should report its metrics.
+            logger.error("Could not check for image drift: %s", error)
+            return []
+
+        summary = image_drift.summarize(drifted)
+
+        if summary:
+            logger.info(summary)
+            set_status_for_ui(summary)
+
+        return drifted
 
     def _get_version(self) -> str:
         # Get current git commit and git tag if available and combine them to a single version string.

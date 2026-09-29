@@ -21,5 +21,6 @@ def test_get_initial_response(mocker: MockerFixture) -> None:
             "Version": {"Semantic": ""},
             "Metrics": {},
             "Services": {},
+            "ImageDrift": [],
         },
     }

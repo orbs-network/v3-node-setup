@@ -1,4 +1,4 @@
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict, List, TypedDict
 
 
 class Version(TypedDict):
@@ -11,6 +11,7 @@ class Payload(TypedDict):
     Version: Version
     Metrics: Dict[str, Any]
     Services: Dict[str, Any]
+    ImageDrift: List[Dict[str, Any]]
 
 
 class Status(TypedDict):
