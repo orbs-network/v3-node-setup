@@ -10,7 +10,10 @@ import yaml
 from config import CONTROL_DIR
 from identity import bare_address, get_node_address
 from logger import logger
-from utils import run
+from utils import CommandError, run
+
+# Fixed by container_name in docker-compose.yml, so it does not move with the project name.
+NGINX_CONTAINER = "nginx"
 
 # The commit whose update ran all the way through, which is not the same thing as the
 # commit that is checked out: the checkout happens first, so a compose failure leaves the
@@ -158,6 +161,64 @@ def get_free_disk_gb():
             continue
 
     return 0.0
+
+
+def container_is_running(name):
+    """Whether a container exists and is currently running."""
+
+    try:
+        return run(["docker", "inspect", "-f", "{{.State.Running}}", name]) == "true"
+    except CommandError:
+        return False
+
+
+def reload_nginx():
+    """Makes nginx apply configuration changes that arrived with this update.
+
+    `nginx/conf.d` is a bind mount, so the checkout updates the file inside the container
+    immediately - but compose decides whether to recreate a container from a hash of its
+    service definition, not of its mounted file contents, so `up -d` leaves nginx alone.
+    nginx reads its configuration only at startup or on SIGHUP. Without this, an nginx
+    config change reaches every node and silently never takes effect, which is how the
+    log endpoints stayed broken across a fleet that reported itself up to date (#81).
+
+    Unconditional, rather than only when the update touched `nginx/`. Gating on a diff
+    would mean trusting `applied_commit.json`, which is absent on the bootstrap path and
+    misleading after a half-failed update - buying a silent failure mode, whose symptom
+    is indistinguishable from the bug this fixes, to skip an operation that is free. A
+    reload forks new workers on the new configuration and lets the old ones drain their
+    in-flight requests, and it only runs on git promotion, never on a poll.
+
+    It also re-resolves upstreams. A literal hostname in `proxy_pass` is resolved once at
+    load and cached for the life of the process, so reloading bounds the damage from one
+    to a single update cycle rather than forever (#70).
+
+    Deliberately never raises. The containers are already updated by the time this runs,
+    so failing here would leave `applied_commit.json` behind, and the next poll would see
+    "checked out but never applied" and retry the whole update - `docker compose pull`
+    included - every single minute.
+    """
+
+    if not container_is_running(NGINX_CONTAINER):
+        set_error(f"{NGINX_CONTAINER} is not running - its configuration was not reloaded")
+        return
+
+    try:
+        # Validates the configuration as actually mounted in the container. If it is
+        # broken the running workers keep serving the last good one, which is the safe
+        # outcome - but a broken config must not look like a clean update.
+        run(["docker", "exec", NGINX_CONTAINER, "nginx", "-t"])
+    except CommandError as error:
+        set_error(f"{NGINX_CONTAINER} configuration is invalid - not reloading: {error.output}")
+        return
+
+    try:
+        run(["docker", "exec", NGINX_CONTAINER, "nginx", "-s", "reload"])
+    except CommandError as error:
+        set_error(f"Failed to reload {NGINX_CONTAINER}: {error.output}")
+        return
+
+    logger.info(f"Reloaded {NGINX_CONTAINER} configuration")
 
 
 def prune_images():
@@ -441,6 +502,9 @@ def trigger_update(scheduled_commit_hash):
     # anything ever reclaiming it.
     logger.info(f"Running docker compose -f {docker_compose_file} up -d --remove-orphans")
     run(["docker", "compose", "-f", docker_compose_file, "up", "-d", "--remove-orphans"])
+
+    # After the containers are up, so a reload never races a container still starting.
+    reload_nginx()
 
     # After the containers are running, so nothing still in use is removed.
     prune_images()

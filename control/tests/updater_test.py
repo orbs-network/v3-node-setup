@@ -142,9 +142,13 @@ def test_an_update_pulls_before_bringing_containers_up(mocker: MockerFixture) ->
 
     docker_steps = [call.args[0] for call in run.call_args_list if call.args[0][0] == "docker"]
 
-    assert docker_steps[0][-1] == "pull"
-    assert "--remove-orphans" in docker_steps[1]
-    assert docker_steps[2] == ["docker", "image", "prune", "-f"]
+    # By position in the sequence rather than adjacency: the nginx reload also issues
+    # docker commands between bringing the containers up and pruning.
+    pull = next(i for i, step in enumerate(docker_steps) if step[-1] == "pull")
+    up = next(i for i, step in enumerate(docker_steps) if "--remove-orphans" in step)
+    prune = docker_steps.index(["docker", "image", "prune", "-f"])
+
+    assert pull < up < prune
 
 
 def test_pruning_happens_after_the_containers_are_running(mocker: MockerFixture) -> None:
@@ -358,3 +362,108 @@ def test_a_clean_tree_reports_nothing(mocker: MockerFixture) -> None:
     updater.report_local_modifications()
 
     status.assert_not_called()
+
+
+def test_nginx_is_reloaded_after_a_successful_update(mocker: MockerFixture) -> None:
+    """Test that an update reloads nginx, since compose leaves a bind-mounted config alone"""
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "container_is_running", return_value=True)
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    commands = [c.args[0] for c in run.call_args_list]
+    assert ["docker", "exec", "nginx", "nginx", "-t"] in commands
+    assert ["docker", "exec", "nginx", "nginx", "-s", "reload"] in commands
+
+
+def test_the_reload_happens_after_the_containers_are_up(mocker: MockerFixture) -> None:
+    """Test ordering, so a reload never races a container that is still starting"""
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "container_is_running", return_value=True)
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    commands = [c.args[0] for c in run.call_args_list]
+    up = next(i for i, c in enumerate(commands) if "up" in c and "-d" in c)
+    reload_at = commands.index(["docker", "exec", "nginx", "nginx", "-s", "reload"])
+    assert up < reload_at
+
+
+def test_an_invalid_nginx_config_is_reported_and_not_reloaded(mocker: MockerFixture) -> None:
+    """Test that a broken config leaves the last good one serving, and says so"""
+
+    mocker.patch.object(updater, "container_is_running", return_value=True)
+    error = mocker.patch.object(updater, "set_error")
+    run = mocker.patch.object(
+        updater,
+        "run",
+        side_effect=CommandError(["docker", "exec", "nginx", "nginx", "-t"], 1, "unknown directive"),
+    )
+
+    updater.reload_nginx()
+
+    assert ["docker", "exec", "nginx", "nginx", "-s", "reload"] not in [c.args[0] for c in run.call_args_list]
+    assert "unknown directive" in error.call_args[0][0]
+
+
+def test_a_failed_reload_is_reported(mocker: MockerFixture) -> None:
+    """Test that a reload that does not take is surfaced rather than swallowed"""
+
+    mocker.patch.object(updater, "container_is_running", return_value=True)
+    error = mocker.patch.object(updater, "set_error")
+
+    def fail_on_reload(command: list[str], *args: object, **kwargs: object) -> str:
+        if "reload" in command:
+            raise CommandError(command, 1, "signal process failed")
+        return ""
+
+    mocker.patch.object(updater, "run", side_effect=fail_on_reload)
+
+    updater.reload_nginx()
+
+    assert "signal process failed" in error.call_args[0][0]
+
+
+def test_a_missing_nginx_is_reported_distinctly(mocker: MockerFixture) -> None:
+    """Test that nginx being down is not confused with a reload that failed"""
+
+    mocker.patch.object(updater, "container_is_running", return_value=False)
+    error = mocker.patch.object(updater, "set_error")
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.reload_nginx()
+
+    run.assert_not_called()
+    assert "not running" in error.call_args[0][0]
+
+
+def test_a_reload_failure_does_not_fail_the_update(mocker: MockerFixture) -> None:
+    """Test that a failed reload still records the commit.
+
+    Raising here would leave applied_commit.json behind, and the next poll would retry
+    the whole update - docker compose pull included - every minute.
+    """
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "container_is_running", return_value=False)
+    mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    assert updater.get_applied_commit() == "deadbeef"
