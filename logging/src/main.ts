@@ -1,6 +1,8 @@
 import express, { Express, NextFunction, Request, Response } from "express";
-import { request, ClientRequest, RequestOptions, IncomingMessage } from "http";
+import { request, ClientRequest, IncomingMessage } from "http";
 import { writeStatusToDisk } from "./status";
+import { DockerLogDemuxer } from "./demux";
+import { buildDockerLogQuery, QueryError, UnsupportedQueryError } from "./query";
 
 const app: Express = express();
 const port: number = 80;
@@ -8,6 +10,7 @@ const port: number = 80;
 const serviceLaunchTime = Math.round(new Date().getTime() / 1000);
 const statusFilePath =
   process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
+const dockerSocketPath = process.env.DOCKER_SOCKET_PATH || "/var/run/docker.sock";
 
 let error = "";
 
@@ -30,71 +33,130 @@ app.use((_: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-/**
- * Remove non-text data from Docker logs
- * Needed to prevent client browser from trying to download logs instead of displaying them
- * */
-const decodeDockerLogs = (data: Buffer): string => {
-  let str = "";
-  let i = 0;
-  while (i < data.length) {
-    const len = data.readUInt32BE(i + 4);
-    str += data.toString("utf8", i + 8, i + 8 + len);
-    i += 8 + len;
-  }
-  return str;
-};
+interface DockerResponse {
+  clientRequest: ClientRequest;
+  response: IncomingMessage;
+}
 
-app.get("/service/:name/log", (req: Request, res: Response) => {
+function dockerGet(path: string): Promise<DockerResponse> {
+  return new Promise((resolve, reject) => {
+    const clientRequest: ClientRequest = request(
+      { socketPath: dockerSocketPath, path, method: "GET" },
+      (response: IncomingMessage) => resolve({ clientRequest, response })
+    );
+    clientRequest.on("error", reject);
+    clientRequest.end();
+  });
+}
+
+async function readBody(response: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of response) {
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+class ContainerNotFound extends Error {}
+
+/**
+ * A container started with a TTY gets an unframed log stream, so demultiplexing
+ * it would mangle the output. None of ours use one today, but the cost of being
+ * wrong is unreadable logs, and the daemon will tell us for free.
+ *
+ * This doubles as the existence check: if the container is gone we find out here,
+ * before any bytes have been written to the response and while we can still set
+ * a status code.
+ */
+async function containerUsesTty(name: string): Promise<boolean> {
+  const { response } = await dockerGet(`/containers/${encodeURIComponent(name)}/json`);
+
+  if (response.statusCode === 404) {
+    response.resume();
+    throw new ContainerNotFound(name);
+  }
+  if (response.statusCode !== 200) {
+    response.resume();
+    throw new Error(`Docker returned ${response.statusCode} inspecting '${name}'`);
+  }
+
+  const inspected = JSON.parse(await readBody(response));
+  return inspected?.Config?.Tty === true;
+}
+
+app.get("/service/:name/log", async (req: Request, res: Response) => {
   const containerName: string = req.params.name;
 
   if (!validNameRegex.test(containerName)) {
     error = "Invalid container name";
-    return res.status(400).send(error);
+    res.status(400).send(`${error}\n`);
+    return;
   }
 
-  const options: RequestOptions = {
-    socketPath: "/var/run/docker.sock",
-    path: `/containers/${containerName}/logs?stdout=1&stderr=1`,
-    method: "GET",
-  };
-
-  const clientRequest: ClientRequest = request(
-    options,
-    (resp: IncomingMessage) => {
-      if (resp.statusCode === 404) {
-        // TODO: add proper logger
-        console.log(
-          `User ${req.ip} requested logs for non-existent service ${containerName}`
-        );
-        error = "Service not found";
-        res.status(404).send(error);
-      } else if (resp.statusCode !== 200) {
-        error = String(resp.statusMessage);
-        console.error("500 error: ", resp);
-        res.status(500).send("An internal error occurred. Try again later");
-      } else {
-        console.log("BACK TO SQUARE THREE!!!");
-        let data = "";
-        // Log will be max 10MB due to log rotation
-        resp.on("data", (chunk: Buffer) => {
-          const logs = decodeDockerLogs(chunk);
-          data += logs;
-        });
-        resp.on("end", () => {
-          res.send(data);
-        });
-      }
+  let dockerQuery: string;
+  try {
+    dockerQuery = buildDockerLogQuery(req.query);
+  } catch (err) {
+    if (err instanceof UnsupportedQueryError) {
+      error = err.message;
+      res.status(501).send(`${err.message}\n`);
+      return;
     }
-  );
+    if (err instanceof QueryError) {
+      error = err.message;
+      res.status(400).send(`${err.message}\n`);
+      return;
+    }
+    throw err;
+  }
 
-  clientRequest.on("error", (e: Error) => {
-    error = e.message;
-    console.error("onError: ", e);
-    res.status(500).send("An unexpected error occurred. Try again later");
-  });
+  try {
+    const tty = await containerUsesTty(containerName);
+    const { clientRequest, response } = await dockerGet(
+      `/containers/${encodeURIComponent(containerName)}/logs?${dockerQuery}`
+    );
 
-  clientRequest.end();
+    if (response.statusCode === 404) {
+      response.resume();
+      throw new ContainerNotFound(containerName);
+    }
+    if (response.statusCode !== 200) {
+      response.resume();
+      throw new Error(`Docker returned ${response.statusCode} reading logs for '${containerName}'`);
+    }
+
+    // Piped rather than accumulated: the json-file driver keeps up to
+    // max-size * max-file per container (150MB as configured in
+    // docker-compose.yml), and the API reads across the rotated files, so an
+    // unfiltered request would otherwise buffer all of it before sending a byte.
+    const logs = tty ? response : response.pipe(new DockerLogDemuxer());
+    logs.pipe(res);
+
+    // A client that gives up halfway must not leave the daemon streaming the
+    // rest of a 150MB log into a socket nobody is reading.
+    res.on("close", () => {
+      clientRequest.destroy();
+      response.destroy();
+    });
+
+    response.on("error", (err: Error) => {
+      error = err.message;
+      console.error("Log stream error: ", err);
+      res.destroy();
+    });
+  } catch (err) {
+    if (err instanceof ContainerNotFound) {
+      console.log(
+        `User ${req.ip} requested logs for non-existent service ${containerName}`
+      );
+      error = "Service not found";
+      res.status(404).send(`${error}\n`);
+      return;
+    }
+    error = err instanceof Error ? err.message : String(err);
+    console.error("onError: ", err);
+    res.status(500).send("An unexpected error occurred. Try again later\n");
+  }
 });
 
 app.listen(port, () => {
