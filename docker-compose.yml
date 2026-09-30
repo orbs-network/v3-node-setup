@@ -117,7 +117,7 @@ services:
     environment:
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
-      test: ping -c 1 logger || exit 1
+      test: "test $$(( $$(date +%s) - $$(stat -c %Y /opt/orbs/status/status.json) )) -lt 600"
 
   vm-notifications:
     logging: *default-logging
@@ -133,7 +133,7 @@ services:
       - MULTILOG_DISABLED=1
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
-      test: ping -c 1 logger || exit 1
+      test: "test $$(( $$(date +%s) - $$(stat -c %Y /opt/orbs/status/status.json) )) -lt 600"
 
   vm-lambda:
     logging: *default-logging
@@ -152,7 +152,7 @@ services:
       - LAMBDA_SIGNER_ENDPOINT=http://nginx/service/signer
       - LAMBDA_STATUS_JSON_PATH=./status/status.json 
     healthcheck:
-      test: ping -c 1 logger || exit 1
+      test: "test $$(( $$(date +%s) - $$(stat -c %Y /opt/orbs/status/status.json) )) -lt 600"
   vm-verifier:
     logging: *default-logging
     container_name: vm-verifier
@@ -165,7 +165,7 @@ services:
     depends_on:
       - ethereum-reader
     healthcheck:
-      test: ping -c 1 logger || exit 1
+      test: "test $$(( $$(date +%s) - $$(stat -c %Y /opt/orbs/status/status.json) )) -lt 600"
   vm-l3-dummy-service:
     logging: *default-logging
     container_name: vm-l3-dummy-service
@@ -177,7 +177,7 @@ services:
       - MULTILOG_DISABLED=1
       - STATUS_FILE_PATH=/opt/orbs/status/status.json
     healthcheck:
-      test: ping -c 1 logger || exit 1
+      test: "test $$(( $$(date +%s) - $$(stat -c %Y /opt/orbs/status/status.json) )) -lt 600"
 
 networks:
   default:
