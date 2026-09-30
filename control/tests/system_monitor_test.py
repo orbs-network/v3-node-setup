@@ -55,6 +55,7 @@ def test_get_initial_response(mocker: MockerFixture) -> None:
             "Metrics": {},
             "Services": {},
             "ImageDrift": [],
+            "StaleComponents": [],
         },
     }
 
@@ -95,3 +96,74 @@ def test_a_deleted_image_does_not_break_the_report(mocker: MockerFixture) -> Non
 
     assert services[0]["ImageTag"] == "nginx:latest"
     assert services[0]["ImageDigest"] == ""
+
+
+def _disk(mount: str, percent: float, fstype: str = "ext4") -> dict:
+    return {"Mountpoint": mount, "Fstype": fstype, "UsedPercent": percent, "TotalMbytes": 1.0, "UsedMbytes": 1.0}
+
+
+def test_snap_mounts_never_raise_the_alarm(mocker: MockerFixture) -> None:
+    """Test that permanently full pseudo filesystems are ignored"""
+
+    # Six of the nine mounts on these nodes are squashfs snap images sitting at 100%.
+    # Alerting on those would fire on every node forever.
+    status = mocker.patch("system_monitor.set_status_for_ui")
+
+    SystemMonitor(client=mocker.Mock())._check_disk_usage([
+        _disk("/snap/core22/2437", 100.0, "squashfs"),
+        _disk("/snap/snapd/27710", 100.0, "squashfs"),
+        _disk("/", 43.5),
+    ])
+
+    status.assert_not_called()
+
+
+def test_a_filling_disk_warns(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that crossing the warn threshold reaches the status line"""
+
+    monkeypatch.setenv("DISK_WARN_PERCENT", "80")
+    monkeypatch.setenv("DISK_CRITICAL_PERCENT", "90")
+    status = mocker.patch("system_monitor.set_status_for_ui")
+    error = mocker.patch("system_monitor.set_error")
+
+    SystemMonitor(client=mocker.Mock())._check_disk_usage([_disk("/", 84.0)])
+
+    assert "84% full" in status.call_args[0][0]
+    error.assert_not_called()
+
+
+def test_a_critical_disk_sets_the_error(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that crossing the critical threshold claims the error field"""
+
+    monkeypatch.setenv("DISK_CRITICAL_PERCENT", "90")
+    mocker.patch("system_monitor.set_status_for_ui")
+    mocker.patch("system_monitor.get_error", return_value="")
+    error = mocker.patch("system_monitor.set_error")
+
+    SystemMonitor(client=mocker.Mock())._check_disk_usage([_disk("/", 95.0)])
+
+    assert "95% full" in error.call_args[0][0]
+
+
+def test_a_critical_disk_does_not_clobber_an_existing_error(mocker: MockerFixture, monkeypatch) -> None:
+    """Test that a more specific error keeps the field"""
+
+    # A failed update says more about what is wrong than a filling disk does.
+    monkeypatch.setenv("DISK_CRITICAL_PERCENT", "90")
+    mocker.patch("system_monitor.set_status_for_ui")
+    mocker.patch("system_monitor.get_error", return_value="An update failed")
+    error = mocker.patch("system_monitor.set_error")
+
+    SystemMonitor(client=mocker.Mock())._check_disk_usage([_disk("/", 95.0)])
+
+    error.assert_not_called()
+
+
+def test_a_healthy_disk_is_silent(mocker: MockerFixture) -> None:
+    """Test that normal usage produces nothing"""
+
+    status = mocker.patch("system_monitor.set_status_for_ui")
+
+    SystemMonitor(client=mocker.Mock())._check_disk_usage([_disk("/", 43.5)])
+
+    status.assert_not_called()

@@ -21,6 +21,7 @@ class Payload(TypedDict):
     Metrics: Dict[str, Any]
     Services: Dict[str, Any]
     ImageDrift: List[Dict[str, Any]]
+    StaleComponents: List[Dict[str, Any]]
 
 
 class Status(TypedDict):

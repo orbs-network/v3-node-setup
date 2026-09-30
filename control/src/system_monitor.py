@@ -13,9 +13,13 @@ from docker import errors
 
 import identity
 import image_drift
+import staleness
 from logger import logger
 from system_monitor_types import Identity, Payload, Status, Version
-from updater import get_error, get_status_for_ui, get_updating_state_for_ui, set_status_for_ui
+from updater import get_error, get_status_for_ui, get_updating_state_for_ui, set_error, set_status_for_ui
+
+# Pseudo filesystems that are full by design and say nothing about real disk pressure.
+IGNORED_FILESYSTEMS = {"squashfs", "iso9660", "tmpfs", "devtmpfs", "overlay", "ramfs"}
 
 
 class SystemMonitor:
@@ -38,6 +42,7 @@ class SystemMonitor:
     metrics: dict
     services: dict
     image_drift: list
+    stale_components: list
     node_address: str = ""
     eth_address: str = ""
     registration: str = identity.UNKNOWN
@@ -52,6 +57,7 @@ class SystemMonitor:
         self.metrics = {}
         self.services = {}
         self.image_drift = []
+        self.stale_components = []
         self.version = ""
         self.start_time = datetime.now().timestamp()
 
@@ -79,6 +85,7 @@ class SystemMonitor:
                 Metrics=self.metrics,
                 Services=self.services,
                 ImageDrift=self.image_drift,
+                StaleComponents=self.stale_components,
             ),
         )
 
@@ -113,8 +120,10 @@ class SystemMonitor:
         metrics = self._get_metrics(now)
         timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
-        # Collected before the status is read, so any drift makes it into this same report.
+        # Collected before the status is read, so anything found makes it into this same report.
         self.image_drift = self._get_image_drift()
+        self.stale_components = self._get_stale_components()
+        self._check_disk_usage(metrics["Disks"])
 
         # self.timestamp = now.isoformat()
         self.timestamp = timestamp
@@ -160,6 +169,31 @@ class SystemMonitor:
             set_status_for_ui(summary)
 
         return drifted
+
+    def _get_stale_components(self) -> list[dict]:
+        """Returns the components that have stopped refreshing their status file"""
+
+        compose_file = os.getenv("DOCKER_COMPOSE_FILE")
+
+        if not compose_file:
+            logger.error("DOCKER_COMPOSE_FILE is not set, skipping the staleness check")
+            return []
+
+        try:
+            reported = staleness.check(compose_file)
+        except Exception as error:  # pylint: disable=broad-except
+            # As with drift, a node that cannot run this check is still a node that should
+            # report everything else it knows.
+            logger.error("Could not check component staleness: %s", error)
+            return []
+
+        summary = staleness.summarize(reported)
+
+        if summary:
+            logger.info(summary)
+            set_status_for_ui(summary)
+
+        return reported
 
     def _get_version(self) -> str:
         # Get current git commit and git tag if available and combine them to a single version string.
@@ -232,6 +266,7 @@ class SystemMonitor:
             usage = psutil.disk_usage(partition.mountpoint)
             partition = {
                 "Mountpoint": partition.mountpoint,
+                "Fstype": partition.fstype,
                 "TotalMbytes": self.__convert_bytes_to_mbytes(usage.total),
                 "UsedMbytes": self.__convert_bytes_to_mbytes(usage.used),
                 "UsedPercent": usage.percent,
@@ -239,6 +274,34 @@ class SystemMonitor:
             disk_info.append(partition)
 
         return disk_info
+
+    def _check_disk_usage(self, disks: list[dict]) -> None:
+        """Raises the alarm when a real filesystem is filling up"""
+
+        warn_percent = float(os.getenv("DISK_WARN_PERCENT", "80"))
+        critical_percent = float(os.getenv("DISK_CRITICAL_PERCENT", "90"))
+
+        for disk in disks:
+            # Snap images are squashfs and permanently 100% full by design - six of the
+            # nine mounts on these nodes. Alerting on those would fire on every node
+            # forever, which is how a signal stops being read.
+            if disk.get("Fstype") in IGNORED_FILESYSTEMS:
+                continue
+
+            used = disk["UsedPercent"]
+            mount = disk["Mountpoint"]
+
+            if used < warn_percent:
+                continue
+
+            message = f"Disk {mount} is {used:.0f}% full"
+            logger.error(message)
+            set_status_for_ui(message)
+
+            # Only claim the error field if nothing more specific already has it: a failed
+            # update says more about what is wrong than a filling disk does.
+            if used >= critical_percent and not get_error():
+                set_error(message)
 
     def _get_process_info(self) -> list[dict]:
         """Returns a list of system processes and their memory usage"""
