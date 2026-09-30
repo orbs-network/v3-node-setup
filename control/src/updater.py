@@ -163,6 +163,31 @@ def get_free_disk_gb():
     return 0.0
 
 
+def build_images_from_source(docker_compose_file):
+    """Rebuilds the services that carry a `build:` section, so their source changes ship.
+
+    `docker compose pull` skips a service that builds from source, and `up -d` reuses
+    whatever image is already on disk rather than noticing the source changed. So without
+    this a commit touching `logging/` is checked out, logged as `Container logger
+    Running`, and recorded as applied while the container keeps running an older build -
+    an update that reports success and changed nothing (#71). `logger` is the only such
+    service today; everything else runs a pinned image from a registry.
+
+    Reported rather than raised, for two reasons. A failure to build the logger, which is
+    observability rather than consensus, must not stop the validator images from
+    updating. And raising here would leave `applied_commit.json` behind, so the next poll
+    would see "checked out but never applied" and retry the whole update - `docker
+    compose pull` included - every minute.
+    """
+
+    logger.info("Building images for services that build from source")
+
+    try:
+        run(["docker", "compose", "-f", docker_compose_file, "build"])
+    except CommandError as error:
+        set_error(f"Failed to build images from source - keeping the existing ones: {error.output}")
+
+
 def container_is_running(name):
     """Whether a container exists and is currently running."""
 
@@ -491,6 +516,9 @@ def trigger_update(scheduled_commit_hash):
         run(["git", "checkout", "-f", scheduled_commit_hash])
 
     ensure_disk_headroom()
+
+    # Before the pull, so both sources of images are settled before anything is started.
+    build_images_from_source(docker_compose_file)
 
     # `up -d` alone only recreates a container when the image reference changes, so an
     # image re-pushed under the same tag would never be picked up without this.

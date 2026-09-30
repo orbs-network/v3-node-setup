@@ -467,3 +467,54 @@ def test_a_reload_failure_does_not_fail_the_update(mocker: MockerFixture) -> Non
     updater.trigger_update("deadbeef")
 
     assert updater.get_applied_commit() == "deadbeef"
+
+
+def test_an_update_builds_images_from_source(mocker: MockerFixture) -> None:
+    """Test that services with a build section are rebuilt, since pull skips them"""
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "reload_nginx")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    run = mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    docker_steps = [call.args[0] for call in run.call_args_list if call.args[0][0] == "docker"]
+
+    build = next(i for i, step in enumerate(docker_steps) if step[-1] == "build")
+    up = next(i for i, step in enumerate(docker_steps) if "--remove-orphans" in step)
+
+    assert build < up
+
+
+def test_a_failed_build_is_reported_but_does_not_stop_the_update(mocker: MockerFixture) -> None:
+    """Test that a broken logger build still lets the validator images update.
+
+    Raising would also leave applied_commit.json behind, and the next poll would retry
+    the whole update - docker compose pull included - every minute.
+    """
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "reload_nginx")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    error = mocker.patch.object(updater, "set_error")
+
+    def fail_on_build(command: list[str], *args: object, **kwargs: object) -> str:
+        if command[-1] == "build":
+            raise CommandError(command, 1, "tsc: error TS2304")
+        return ""
+
+    run = mocker.patch.object(updater, "run", side_effect=fail_on_build)
+
+    updater.trigger_update("deadbeef")
+
+    assert "tsc: error TS2304" in error.call_args[0][0]
+    # The update carried on, and the commit was still recorded.
+    assert any("--remove-orphans" in call.args[0] for call in run.call_args_list)
+    assert updater.get_applied_commit() == "deadbeef"
