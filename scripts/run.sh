@@ -49,7 +49,7 @@ fi
 step "Installing control cron..."
 "$ROOT/scripts/install-control-cron.sh"
 
-mkdir -p "$ROOT/.data/ethereum-reader" "$ROOT/.data/ethereum-writer" "$ROOT/.data/matic-reader" "$ROOT/.data/signer" "$ROOT/.data/logger" "$ROOT/.data/vm-notifications" "$ROOT/.data/vm-lambda" "$ROOT/.data/vm-twap" "$ROOT/.data/control"
+mkdir -p "$ROOT/.data/ethereum-reader" "$ROOT/.data/ethereum-writer" "$ROOT/.data/matic-reader" "$ROOT/.data/signer" "$ROOT/.data/logger" "$ROOT/.data/vm-notifications" "$ROOT/.data/vm-lambda" "$ROOT/.data/control"
 
 if command -v docker-compose &>/dev/null; then
   COMPOSE="docker-compose"
