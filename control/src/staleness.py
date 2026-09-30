@@ -23,18 +23,33 @@ from logger import logger
 # to fix rather than an exception to configure.
 STALE_AFTER_SECONDS = int(os.getenv("STATUS_STALE_AFTER_MINUTES", "10")) * 60
 
+# Where a component mounts the directory it writes its status file into.
+STATUS_MOUNT = "/opt/orbs/status"
+
 FRESH = "fresh"
 STALE = "stale"
 UNKNOWN = "unknown"
 
 
-def compose_container_names(compose_file: str) -> list[str]:
-    """Returns the container name of every compose service, built locally or not"""
+def reporting_components(compose_file: str) -> list[str]:
+    """Returns the components that are expected to write a status file.
+
+    A component declares that by mounting a status directory, so the expectation comes
+    from the compose file rather than from assuming every service reports. nginx mounts
+    `.data` to *serve* those files and writes none of its own, and holding it to a
+    contract it never entered would leave a permanent unknown that people learn to skip.
+    """
 
     with open(compose_file, encoding="utf8") as file:
         compose = yaml.safe_load(file)
 
-    return sorted(service.get("container_name", name) for name, service in (compose.get("services") or {}).items())
+    names = []
+
+    for name, service in (compose.get("services") or {}).items():
+        if any(str(volume).endswith(STATUS_MOUNT) for volume in (service.get("volumes") or [])):
+            names.append(service.get("container_name", name))
+
+    return sorted(names)
 
 
 def status_file_for(container_name: str) -> str:
@@ -72,7 +87,7 @@ def check(compose_file: str) -> list[dict]:
     now = datetime.now(timezone.utc)
     reported = []
 
-    for container_name in compose_container_names(compose_file):
+    for container_name in reporting_components(compose_file):
         record = {"Service": container_name, "Timestamp": "", "AgeSeconds": 0, "State": UNKNOWN}
 
         try:

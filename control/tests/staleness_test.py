@@ -14,12 +14,23 @@ services:
   ethereum-reader:
     container_name: ethereum-reader
     image: example/reader:v1
+    volumes:
+      - ./.data/ethereum-reader:/opt/orbs/status
   vm-lambda:
     container_name: vm-lambda
     image: example/lambda:v1
+    volumes:
+      - ./.data/vm-lambda:/opt/orbs/status
   logger:
     build:
       context: ./logging
+    volumes:
+      - ./.data/logger:/opt/orbs/status
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    volumes:
+      - ./.data:/opt/orbs
 """
 
 
@@ -136,7 +147,7 @@ def test_locally_built_services_are_included(tmp_path: Path) -> None:
     """Test that a service without an image is still expected to report"""
 
     # Unlike the drift check, staleness applies to every component, built or pulled.
-    assert "logger" in staleness.compose_container_names(_compose(tmp_path))
+    assert "logger" in staleness.reporting_components(_compose(tmp_path))
 
 
 def test_summarize_avoids_commas(tmp_path: Path) -> None:
@@ -156,3 +167,11 @@ def test_summarize_is_empty_when_all_fresh() -> None:
     """Test that a clean check produces no status line"""
 
     assert staleness.summarize([]) == ""
+
+
+def test_a_component_that_writes_no_status_is_not_expected_to(tmp_path: Path) -> None:
+    """Test that nginx is left out, since it serves status files rather than writing one"""
+
+    # Holding it to a contract it never entered would leave a permanent unknown, which is
+    # precisely the standing red that teaches people to stop reading the signal.
+    assert "nginx" not in staleness.reporting_components(_compose(tmp_path))
