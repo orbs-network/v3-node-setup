@@ -4,7 +4,7 @@ import json
 import re
 import shutil
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import yaml
 from config import CONTROL_DIR, update_state_file
@@ -120,15 +120,27 @@ def _write_update_state(state):
         logger.error(f"Could not record update state: {error}")
 
 
+def utc_now():
+    """A timestamp a browser will read as UTC.
+
+    `datetime.now().isoformat()` produces no offset and no Z, so anything parsing it takes
+    it as local time and renders it wrong by the viewer's offset. The nodes run UTC, which
+    is exactly what makes the mistake invisible from here. Matches the format
+    system_monitor already publishes for the top-level Timestamp.
+    """
+
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
 def record_update_attempt():
     state = get_update_state()
-    state["last_attempt_at"] = datetime.now().isoformat()
+    state["last_attempt_at"] = utc_now()
     _write_update_state(state)
 
 
 def record_update_success():
     state = get_update_state()
-    now = datetime.now().isoformat()
+    now = utc_now()
     failures = state.get("consecutive_failures", 0)
 
     state["last_success_at"] = now
@@ -456,7 +468,7 @@ def set_applied_commit(commit_hash):
 
     try:
         with open(applied_commit_file, "w", encoding="utf8") as file:
-            json.dump({"commit": commit_hash, "applied_at": datetime.now().isoformat()}, file, indent=4)
+            json.dump({"commit": commit_hash, "applied_at": utc_now()}, file, indent=4)
     except OSError as error:
         # Losing the marker means the next poll retries an update that already succeeded,
         # which is wasteful but safe. Failing the poll over it would not be.

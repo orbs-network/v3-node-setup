@@ -640,3 +640,23 @@ def test_the_report_states_disabled_when_updates_are_off(mocker: MockerFixture, 
 
     assert report["State"] == "disabled"
     assert report["UpdatesDisabled"] is True
+
+
+def test_recorded_timestamps_are_explicitly_utc(mocker: MockerFixture) -> None:
+    """Test that a browser parsing these gets UTC, not its own timezone.
+
+    datetime.now().isoformat() carries no offset and no Z, so anything parsing it reads it
+    as local time. The nodes run UTC, which is exactly what hides the mistake.
+    """
+
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+
+    updater.record_update_attempt()
+    updater.record_update_success()
+    updater.set_applied_commit("deadbeef")
+
+    state = updater.get_update_state()
+
+    assert state["last_attempt_at"].endswith("Z")
+    assert state["last_success_at"].endswith("Z")
+    assert updater.get_updater_report()["AppliedAt"].endswith("Z")

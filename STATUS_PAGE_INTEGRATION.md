@@ -107,7 +107,7 @@ Control already warns at 80% and escalates at 90% into `Status` and `Error`, so 
 ```json
 {
   "Branch": "feature/v5-ready",
-  "AppliedCommit": "73a5b9e...", "AppliedAt": "2026-10-01T10:43:15.123456",
+  "AppliedCommit": "73a5b9e...", "AppliedAt": "2026-10-01T10:43:15.123Z",
   "CheckedOutCommit": "73a5b9e...",
   "RunningCommit": "fda624c...",
   "TargetCommit": "73a5b9e...",
