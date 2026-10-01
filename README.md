@@ -36,11 +36,11 @@ Everything is served on port 80 by the `nginx` container.
 Note the singular `/service/`, and note that a component's status is at
 `/service/<name>/status`, **not** `/status`.
 
-> **`/service/<name>/logs` is currently broken on the fleet — issue #70.** `proxy_pass`
-> uses a literal hostname, which nginx resolves once at startup and caches for the life of
-> the process, so the logger being recreated with a new IP leaves nginx proxying to
-> whichever container inherited the old address. Every log request 404s. `status` is
-> unaffected because it is a static alias, never a proxy.
+The logger upstream goes through a variable (`set $logger_upstream logger;`) rather than a
+literal hostname, and that is deliberate — see the comment next to it. nginx resolves a
+literal name in `proxy_pass` once at configuration load and caches it for the life of the
+process, so the logger being recreated with a new address left every log request 404ing
+for a day (#70). Only a variable re-resolves. An `upstream` block does not fix it either.
 
 Three legacy names are rewritten: `/services/…` → `/service/…`,
 `/service/management-service/…` → `/service/ethereum-reader/…`, and
@@ -400,12 +400,10 @@ image from a registry.
 It mounts the Docker socket and exposes container logs over HTTP, read straight from the
 Docker API. nginx proxies `/service/<container>/logs` to it.
 
-> **Two things stand between this section and reality on the nodes today.** The query
-> parameters below are committed but **not running**: the logger is built from source and
-> the updater never passes `--build`, so `logging/` changes are checked out and marked
-> applied while the container keeps running an image from February (#71). And the endpoint
-> is unreachable through nginx regardless (#70). Both are reproducible on t1; neither is
-> caused by the other. Reaching the logger container directly by IP works.
+Because it is built from source rather than pulled, the updater has to build it
+explicitly — `pull` skips a service with a `build:` section and `up -d` reuses whatever
+image is already on disk. Without that step a `logging/` change was checked out, recorded
+as applied, and never actually ran (#71).
 
 ```
 GET /service/<container>/logs
@@ -494,15 +492,18 @@ read both by `docker compose` and by `scripts/run-control.sh`.
 
 # Known open issues
 
-- **#70** — nginx caches the logger's IP at startup, so **every container log endpoint
-  404s** and re-breaks whenever the logger is recreated. Found 2026-09-30; logs had been
-  unreachable since the update the previous morning.
-- **#71** — the updater never rebuilds the logger, so `logging/` changes never reach the
-  nodes while the update still reports success.
 - **#67** — `vm-lambda` never refreshes its `status.json` timestamp. The service works
   fine; it has simply not said so since May. The fix belongs in the `vm-lambda` project.
 - **#41** — nginx `boyar` → `control` routing does not work.
 - **#68** — `control`, `updater` and `recovery` logs are served statically and support no
   flags at all. Parked deliberately.
-- **#69** — the logger's Docker log flags. Implemented and tested, blocked from the fleet
-  by #70 and #71. `follow` is deliberately excluded until nginx gets `proxy_buffering off`.
+- **#72–#80** — tidy-ups found while writing this README: test scaffolding on the readers,
+  stale installer defaults, a dead `errors_file`, a broken smoke-test workflow, a shadowed
+  `test.conf`. All verified, all low priority, all parked.
+
+Closed on 2026-09-30, kept here because the lessons recur: **#70** (nginx caches a literal
+`proxy_pass` hostname at load — only a variable re-resolves), **#81** (nothing reloaded
+nginx, so config changes reached every node and never took effect), **#71** (the updater
+never built the logger, so `logging/` changes never shipped). The pattern behind all three
+is the same: a commit can be recorded as applied while part of what it changed is not
+actually running. Check that a change took effect, not just that it deployed.
