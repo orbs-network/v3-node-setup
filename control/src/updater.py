@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime, timedelta
 
 import yaml
-from config import CONTROL_DIR
+from config import CONTROL_DIR, update_state_file
 from identity import bare_address, get_node_address
 from logger import logger
 from utils import CommandError, run
@@ -58,6 +58,147 @@ def set_status_for_ui(status):
     statusForUi.insert(0, status)
     if len(statusForUi) > 5:
         statusForUi = statusForUi[:5]
+
+
+# The commit this process is *running*, captured before any checkout moves the working
+# copy. An update is carried out by the code from the previous commit, because control is
+# a fresh process each tick started from whatever was checked out at the time - so the
+# updater that applies commit N is the one from N-1. Publishing it is what makes "I shipped
+# a fix and nothing happened" diagnosable instead of mysterious.
+_running_commit = ""
+
+# What this tick saw, recorded by compare() so the status report describes the poll that
+# actually ran rather than repeating its git and network calls to find out again. Empty
+# when compare() returned before resolving them, which is itself the honest answer.
+_branch = ""
+_target_commit = ""
+
+
+def get_running_commit():
+    """The commit whose updater code is executing, remembered on first call."""
+
+    global _running_commit
+
+    if not _running_commit:
+        _running_commit = get_current_git_commit_hash()
+
+    return _running_commit
+
+
+def get_update_state():
+    """Counters and timestamps that have to outlive a single tick.
+
+    Returns the defaults rather than raising when the file is missing or unreadable, for
+    the same reason the applied-commit marker does: a corrupt file must not be able to
+    stop the poll.
+    """
+
+    default = {
+        "last_attempt_at": "",
+        "last_success_at": "",
+        "last_error": "",
+        "consecutive_failures": 0,
+    }
+
+    try:
+        with open(update_state_file, "r", encoding="utf8") as handle:
+            stored = json.load(handle)
+    except (OSError, ValueError):
+        return default
+
+    if not isinstance(stored, dict):
+        return default
+
+    return {**default, **stored}
+
+
+def _write_update_state(state):
+    try:
+        with open(update_state_file, "w", encoding="utf8") as handle:
+            json.dump(state, handle, indent=4)
+    except OSError as error:
+        logger.error(f"Could not record update state: {error}")
+
+
+def record_update_attempt():
+    state = get_update_state()
+    state["last_attempt_at"] = datetime.now().isoformat()
+    _write_update_state(state)
+
+
+def record_update_success():
+    state = get_update_state()
+    now = datetime.now().isoformat()
+    failures = state.get("consecutive_failures", 0)
+
+    state["last_success_at"] = now
+    state["last_error"] = ""
+    state["consecutive_failures"] = 0
+    _write_update_state(state)
+
+    if failures:
+        logger.info(f"Update succeeded after {failures} consecutive failures")
+
+
+def record_update_failure(error):
+    """Counts a failed update, so a node failing every minute does not look like one that
+    failed once. Nothing else counts this: the commit is not recorded on failure, so the
+    next tick retries, and each tick is a new process with no memory of the last."""
+
+    state = get_update_state()
+    state["consecutive_failures"] = int(state.get("consecutive_failures", 0)) + 1
+    state["last_error"] = str(error)
+    _write_update_state(state)
+
+    logger.error(f"Update failed ({state['consecutive_failures']} in a row): {error}")
+
+
+def get_updater_report():
+    """The facts a status consumer needs about updating, as structured data.
+
+    Facts only - no verdict on whether any of it is good. The status page owns comparisons.
+    """
+
+    state = get_update_state()
+    applied = get_applied_commit()
+    checked_out = get_current_git_commit_hash()
+    failures = int(state.get("consecutive_failures", 0))
+    disabled = os.getenv("DONT_UPDATE", "false") == "true"
+
+    if disabled:
+        update_state = "disabled"
+    elif failures:
+        update_state = "failing"
+    elif updateTargetTime:
+        update_state = "scheduled"
+    elif _target_commit and applied and not _target_commit.startswith(applied[:7]) and not applied.startswith(_target_commit[:7]):
+        update_state = "behind"
+    else:
+        update_state = "idle"
+
+    return {
+        "Branch": _branch,
+        "AppliedCommit": applied,
+        "AppliedAt": _applied_at(),
+        "CheckedOutCommit": checked_out,
+        "RunningCommit": get_running_commit(),
+        "TargetCommit": _target_commit,
+        "State": update_state,
+        "ScheduledFor": updateTargetTime,
+        "UpdatesDisabled": disabled,
+        "LastAttemptAt": state.get("last_attempt_at", ""),
+        "LastSuccessAt": state.get("last_success_at", ""),
+        "LastError": state.get("last_error", ""),
+        "ConsecutiveFailures": failures,
+    }
+
+
+def _applied_at():
+    try:
+        with open(applied_commit_file, "r", encoding="utf8") as handle:
+            return json.load(handle).get("applied_at", "")
+    except (OSError, ValueError, AttributeError):
+        return ""
 
 
 def set_error(error):
@@ -389,9 +530,14 @@ def get_remote_latest_commit_hash():
 
 
 def compare():
-    global isInUpdatingState, updateTargetTime
+    global isInUpdatingState, updateTargetTime, _branch, _target_commit
 
     logger.debug("Comparing current state with metadata")
+
+    # Before anything can move the working copy, so this records the code that is running
+    # rather than the code that is about to be checked out.
+    get_running_commit()
+    _branch = extract_branch_name()
 
     metadata = fetch_and_parse_metadata()
     node_address = get_node_address()
@@ -434,6 +580,8 @@ def compare():
     scheduled_commit_hash = metadata.get("commit")
     if scheduled_commit_hash == "latest":
         scheduled_commit_hash = get_remote_latest_commit_hash()
+
+    _target_commit = scheduled_commit_hash
 
     if updateMode == "scheduled":
         logger.info("Scheduled update mode")
@@ -482,13 +630,37 @@ def compare():
 
 
 def trigger_update(scheduled_commit_hash):
+    """Applies an update and records whether it worked.
+
+    The counting lives in this wrapper so that a failure is recorded before the exception
+    propagates, and so the outcome is recorded once however the update was reached. A node
+    whose update fails never records the commit, so the next tick retries - every minute,
+    forever, in a fresh process each time. Without a counter on disk, a node that has
+    failed two thousand times running is indistinguishable from one that failed once.
+    """
+
     logger.info(f"Triggering update for commit hash: {scheduled_commit_hash}")
 
+    # Checked before the attempt is counted: refusing to update is not an attempt at one.
     if os.getenv("DONT_UPDATE", "false") == "true":
         set_status_for_ui("DONT_UPDATE is set to true - skipping update")
         logger.info("DONT_UPDATE is set to true, skipping update")
         return
 
+    record_update_attempt()
+    started = datetime.now()
+
+    try:
+        _apply_update(scheduled_commit_hash)
+    except Exception as error:
+        record_update_failure(error)
+        raise
+
+    record_update_success()
+    logger.info(f"Update to {scheduled_commit_hash} took {(datetime.now() - started).total_seconds():.1f}s")
+
+
+def _apply_update(scheduled_commit_hash):
     # Read this before touching the checkout, so a missing setting fails the update before
     # it has moved the working copy halfway to the new commit.
     docker_compose_file = os.getenv("DOCKER_COMPOSE_FILE")

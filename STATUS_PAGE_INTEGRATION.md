@@ -102,6 +102,44 @@ Components that write no status file at all are excluded, so nginx will never ap
 
 Control already warns at 80% and escalates at 90% into `Status` and `Error`, so the page does not have to duplicate that logic — but it must not render the snap mounts as nine disks, six of them full.
 
+### `Payload.Updater`
+
+```json
+{
+  "Branch": "feature/v5-ready",
+  "AppliedCommit": "73a5b9e...", "AppliedAt": "2026-10-01T10:43:15.123456",
+  "CheckedOutCommit": "73a5b9e...",
+  "RunningCommit": "fda624c...",
+  "TargetCommit": "73a5b9e...",
+  "State": "idle",
+  "ScheduledFor": 0,
+  "UpdatesDisabled": false,
+  "LastAttemptAt": "...", "LastSuccessAt": "...",
+  "LastError": "", "ConsecutiveFailures": 0
+}
+```
+
+Everything about updating, as fields rather than prose. Before this the only way to answer "is this node up to date" was to parse the joined `Status` string.
+
+`State` is one of:
+
+| | |
+|---|---|
+| `idle` | applied, nothing to do |
+| `behind` | the target commit is not the applied one; it will update on a following tick |
+| `scheduled` | waiting for this node's slot in a staggered rollout — see `ScheduledFor`, a unix timestamp |
+| `failing` | the last update failed; see `ConsecutiveFailures` and `LastError` |
+| `disabled` | `DONT_UPDATE` is set on the node |
+| `unknown` | no poll has completed yet in this process |
+
+**`ConsecutiveFailures` is the field to watch.** A failed update never records the commit, so the node retries every minute, in a fresh process each time. This counter is persisted on the node precisely so that a node which has failed two thousand times running does not look identical to one that failed once. Anything above a handful means a node that is stuck and will stay stuck.
+
+**`RunningCommit` is not the same as `CheckedOutCommit`, and that is not a bug.** An update is carried out by the updater code from the *previous* commit, because control is a fresh process each tick started from whatever was checked out at the time. They differ on exactly the tick that applies an update. Showing both is what makes "a fix was shipped and nothing happened" diagnosable.
+
+`AppliedCommit` is the update that ran all the way through; `CheckedOutCommit` is what the working copy is sitting at. They differ when a checkout landed but the update then failed, which is the case `ConsecutiveFailures` is counting.
+
+There is no `updating` state. An update holds the poll lock for its whole duration and the status file is written after the poll finishes, so nothing writes a status *during* one — `Timestamp` simply stops advancing until it completes. A node mid-update looks like a node whose status has gone stale, and for a long update that is the honest reading.
+
 ### `Status` and `Error`
 
 `Status` is control's own summary, entries joined with `, ` and each prefixed `• `. Individual messages never contain a comma, so splitting on `, ` is safe.

@@ -518,3 +518,125 @@ def test_a_failed_build_is_reported_but_does_not_stop_the_update(mocker: MockerF
     # The update carried on, and the commit was still recorded.
     assert any("--remove-orphans" in call.args[0] for call in run.call_args_list)
     assert updater.get_applied_commit() == "deadbeef"
+
+
+@pytest.fixture(autouse=True)
+def isolated_update_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Gives each test its own update-state file"""
+
+    monkeypatch.setattr(updater, "update_state_file", str(tmp_path / "update_state.json"))
+
+
+def test_no_update_state_reports_defaults() -> None:
+    """Test that a node with no state file reports zeroes rather than failing"""
+
+    assert updater.get_update_state() == {
+        "last_attempt_at": "",
+        "last_success_at": "",
+        "last_error": "",
+        "consecutive_failures": 0,
+    }
+
+
+def test_an_unreadable_update_state_reports_defaults() -> None:
+    """Test that a corrupt state file cannot take the poll down"""
+
+    Path(updater.update_state_file).write_text("not json at all", encoding="utf8")
+
+    assert updater.get_update_state()["consecutive_failures"] == 0
+
+
+def test_consecutive_failures_accumulate(mocker: MockerFixture) -> None:
+    """Test the thing this exists for: a node failing every minute must not look like one
+    that failed once. Each tick is a fresh process, so the count has to be on disk."""
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "run", side_effect=CommandError(["git", "fetch"], 1, "network down"))
+
+    for _ in range(3):
+        with pytest.raises(CommandError):
+            updater.trigger_update("deadbeef")
+
+    state = updater.get_update_state()
+    assert state["consecutive_failures"] == 3
+    assert "network down" in state["last_error"]
+    # Still not recorded as applied, so the next poll retries.
+    assert updater.get_applied_commit() == ""
+
+
+def test_a_success_clears_the_failure_count(mocker: MockerFixture) -> None:
+    """Test that recovering resets the counter and the error"""
+
+    updater.record_update_failure(RuntimeError("boom"))
+    updater.record_update_failure(RuntimeError("boom"))
+    assert updater.get_update_state()["consecutive_failures"] == 2
+
+    mocker.patch.object(updater, "report_local_modifications")
+    mocker.patch.object(updater, "extract_branch_name", return_value="feature/v5-ready")
+    mocker.patch.object(updater, "ensure_disk_headroom")
+    mocker.patch.object(updater, "prune_images")
+    mocker.patch.object(updater, "reload_nginx")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="deadbeef")
+    mocker.patch.object(updater, "run", return_value="")
+
+    updater.trigger_update("deadbeef")
+
+    state = updater.get_update_state()
+    assert state["consecutive_failures"] == 0
+    assert state["last_error"] == ""
+    assert state["last_success_at"] != ""
+
+
+def test_a_refused_update_is_not_counted_as_an_attempt(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that DONT_UPDATE does not register as an attempt or a success"""
+
+    monkeypatch.setenv("DONT_UPDATE", "true")
+    mocker.patch.object(updater, "run")
+
+    updater.trigger_update("deadbeef")
+
+    assert updater.get_update_state()["last_attempt_at"] == ""
+    assert updater.get_update_state()["last_success_at"] == ""
+
+
+def test_the_report_carries_the_running_commit_separately(mocker: MockerFixture) -> None:
+    """Test that the commit whose code ran is reported apart from the one checked out.
+
+    They differ on exactly the tick that applies an update, which is what makes the
+    two-tick behaviour visible instead of mysterious.
+    """
+
+    mocker.patch.object(updater, "_running_commit", "oldcommit")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="newcommit")
+
+    report = updater.get_updater_report()
+
+    assert report["RunningCommit"] == "oldcommit"
+    assert report["CheckedOutCommit"] == "newcommit"
+
+
+def test_the_report_states_failing_when_updates_are_failing(mocker: MockerFixture) -> None:
+    """Test that a failing node says so in a field, not only in prose"""
+
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="abc123")
+    updater.record_update_failure(RuntimeError("compose blew up"))
+
+    report = updater.get_updater_report()
+
+    assert report["State"] == "failing"
+    assert report["ConsecutiveFailures"] == 1
+    assert "compose blew up" in report["LastError"]
+
+
+def test_the_report_states_disabled_when_updates_are_off(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that DONT_UPDATE is visible as a field rather than only as a log line"""
+
+    monkeypatch.setenv("DONT_UPDATE", "true")
+    mocker.patch.object(updater, "get_current_git_commit_hash", return_value="abc123")
+
+    report = updater.get_updater_report()
+
+    assert report["State"] == "disabled"
+    assert report["UpdatesDisabled"] is True

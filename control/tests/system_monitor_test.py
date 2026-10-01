@@ -56,6 +56,24 @@ def test_get_initial_response(mocker: MockerFixture) -> None:
             "Services": {},
             "ImageDrift": [],
             "StaleComponents": [],
+            # Before a poll has run, so the state is "unknown" rather than "idle" - not
+            # having asked yet is a different thing from having asked and found nothing
+            # to do.
+            "Updater": {
+                "Branch": "",
+                "AppliedCommit": "",
+                "AppliedAt": "",
+                "CheckedOutCommit": "",
+                "RunningCommit": "",
+                "TargetCommit": "",
+                "State": "unknown",
+                "ScheduledFor": 0,
+                "UpdatesDisabled": False,
+                "LastAttemptAt": "",
+                "LastSuccessAt": "",
+                "LastError": "",
+                "ConsecutiveFailures": 0,
+            },
         },
     }
 
