@@ -2,7 +2,8 @@ import express, { Express, NextFunction, Request, Response } from "express";
 import { request, ClientRequest, IncomingMessage } from "http";
 import { writeStatusToDisk } from "./status";
 import { DockerLogDemuxer } from "./demux";
-import { buildDockerLogQuery, QueryError, UnsupportedQueryError } from "./query";
+import { buildDockerLogQuery, buildFileLogOptions, QueryError, UnsupportedQueryError } from "./query";
+import { isFileBacked, logFilePath, readLogFile } from "./filelog";
 
 const app: Express = express();
 const port: number = 80;
@@ -11,6 +12,9 @@ const serviceLaunchTime = Math.round(new Date().getTime() / 1000);
 const statusFilePath =
   process.env.STATUS_FILE_PATH || "/opt/orbs/status/status.json";
 const dockerSocketPath = process.env.DOCKER_SOCKET_PATH || "/var/run/docker.sock";
+// Where .data is mounted, read-only, so the non-container components' log files can be
+// read. docker-compose.yml maps ./.data here.
+const logsRoot = process.env.LOGS_ROOT || "/opt/orbs/logs";
 
 let error = "";
 
@@ -84,6 +88,61 @@ async function containerUsesTty(name: string): Promise<boolean> {
   return inspected?.Config?.Tty === true;
 }
 
+function respondToQueryError(err: unknown, res: Response): void {
+  if (err instanceof UnsupportedQueryError) {
+    error = err.message;
+    res.status(501).send(`${err.message}\n`);
+    return;
+  }
+  if (err instanceof QueryError) {
+    error = err.message;
+    res.status(400).send(`${err.message}\n`);
+    return;
+  }
+  error = err instanceof Error ? err.message : String(err);
+  console.error("Query error: ", err);
+  res.status(500).send("An unexpected error occurred. Try again later\n");
+}
+
+/**
+ * Serves a component that runs on the host rather than in Docker, by reading its log file.
+ * Only the live file, and only `tail` - see filelog.ts and buildFileLogOptions.
+ */
+async function serveFileLog(req: Request, res: Response, component: string): Promise<void> {
+  let options: { tail: number | "all" };
+
+  try {
+    options = buildFileLogOptions(req.query, component);
+  } catch (err) {
+    respondToQueryError(err, res);
+    return;
+  }
+
+  try {
+    const logs = await readLogFile(logFilePath(logsRoot, component), options.tail);
+
+    logs.on("error", (err: Error) => {
+      error = err.message;
+      console.error("Log file stream error: ", err);
+      res.destroy();
+    });
+
+    res.on("close", () => logs.destroy());
+    logs.pipe(res);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      // Expected for updater and recovery, which have routes but nothing writing them.
+      console.log(`User ${req.ip} requested logs for ${component}, which has no log file`);
+      error = `No log file for ${component}`;
+      res.status(404).send(`${error}\n`);
+      return;
+    }
+    error = err instanceof Error ? err.message : String(err);
+    console.error("onError: ", err);
+    res.status(500).send("An unexpected error occurred. Try again later\n");
+  }
+}
+
 app.get("/service/:name/log", async (req: Request, res: Response) => {
   const containerName: string = req.params.name;
 
@@ -93,21 +152,17 @@ app.get("/service/:name/log", async (req: Request, res: Response) => {
     return;
   }
 
+  if (isFileBacked(containerName)) {
+    await serveFileLog(req, res, containerName);
+    return;
+  }
+
   let dockerQuery: string;
   try {
     dockerQuery = buildDockerLogQuery(req.query);
   } catch (err) {
-    if (err instanceof UnsupportedQueryError) {
-      error = err.message;
-      res.status(501).send(`${err.message}\n`);
-      return;
-    }
-    if (err instanceof QueryError) {
-      error = err.message;
-      res.status(400).send(`${err.message}\n`);
-      return;
-    }
-    throw err;
+    respondToQueryError(err, res);
+    return;
   }
 
   try {

@@ -30,7 +30,7 @@ Everything is served on port 80 by the `nginx` container.
 |---|---|
 | `/service/<name>/status` | `.data/<name>/status.json`, as a static file |
 | `/service/<name>/logs` | that container's Docker logs, proxied to `logger` |
-| `/service/{control,updater,recovery}/logs` | `.data/<name>/log.txt`, as a static file |
+| `/service/{control,updater,recovery}/logs` | `.data/<name>/log.txt`, via the logger (`tail` only) |
 | `/service/vm-<name>/<path>` | proxied into the `vm-<name>` container |
 
 Note the singular `/service/`, and note that a component's status is at
@@ -49,8 +49,7 @@ Three legacy names are rewritten: `/services/…` → `/service/…`,
 
 Location order in `default.conf` is load-bearing: the `status` and `logs` locations are
 declared before the `vm-*` proxy block, so `/service/vm-lambda/status` serves the status
-file rather than proxying into the container. The static `control|updater|recovery` log
-alias is declared before the `logger` proxy for the same reason.
+file rather than proxying into the container.
 
 ---
 
@@ -447,9 +446,36 @@ Full detail in **[logging/README.md](logging/README.md)**. Worth knowing here:
 - **Docker's framing does not respect chunk boundaries.** `demux.ts` is a `Transform` that
   carries partial headers and payloads across chunks; decoding each chunk independently —
   which this service used to do — produced garbage for anything over one chunk.
-- **Non-container components bypass this service entirely.** `control`, `updater` and
-  `recovery` have their log files served statically by nginx, so none of the flags above
-  apply to them. Issue #68.
+## Components that are not containers
+
+`control`, `updater` and `recovery` run on the host, so there is no Docker log stream to
+ask the daemon for. They used to be served by nginx as static files, with an `alias`
+straight to the file — which meant the query parameters were accepted and silently
+ignored. `?tail=300` against `control` returned the entire file, 239,838 lines of it.
+
+They now go through the logger as well, which reads the same files from `./.data` mounted
+read-only at `/opt/orbs/logs`. Same URL, same component names, and `tail` behaves the same
+way as it does for a container:
+
+```bash
+curl 'http://<node>/service/control/logs?tail=300'
+```
+
+Three things differ from a container, deliberately:
+
+- **Only `tail` is supported.** `since` and `until` would mean parsing a timestamp out of
+  every line, which would tie the logger to a log format that is not a contract; the
+  timestamp is already in the line, so `timestamps` has nothing to add; and a file has no
+  separate streams to select between. All of them return `400` naming the parameter rather
+  than being accepted and ignored, which is the behaviour this replaced.
+- **Only the live file is read**, never the rotated `log.txt.1` beside it. A `tail` larger
+  than the current file returns everything it holds rather than reaching further back.
+- **`updater` and `recovery` have routes but nothing writes their files**, so they return
+  `404`. Only `control` has a log today — see #85 for whether the other two should exist at
+  all, given the updater is a module inside control rather than a process of its own.
+
+`tail` reads backwards from the end of the file in 64KB chunks rather than loading it, so
+asking a 10MB log for 300 lines reads about one chunk.
 
 Logger also writes its own `.data/logger/status.json` every 5 minutes, so it participates
 in the same staleness contract as everything else.
@@ -509,10 +535,6 @@ read both by `docker compose` and by `scripts/run-control.sh`.
 - **#67** — `vm-lambda` never refreshes its `status.json` timestamp. The service works
   fine; it has simply not said so since May. The fix belongs in the `vm-lambda` project.
 - **#41** — nginx `boyar` → `control` routing does not work.
-- **#68** — `control`, `updater` and `recovery` logs are served statically and support no
-  flags at all. Parked deliberately.
-- **#82** — nothing stops cron starting a second control process while an update is still
-  running. An update that builds the logger takes most of the 60 second interval.
 - **#83** — `follow` on the log endpoint, which needs `proxy_buffering off` in nginx.
 - **#72–#80** — tidy-ups found while writing this README: test scaffolding on the readers,
   stale installer defaults, a dead `errors_file`, a broken smoke-test workflow, a shadowed

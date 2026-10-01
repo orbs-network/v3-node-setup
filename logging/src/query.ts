@@ -125,6 +125,40 @@ function timestamp(name: string, raw: unknown, nowMillis: number): string | unde
   );
 }
 
+/**
+ * The options a file-backed component accepts.
+ *
+ * Only `tail`. The rest of Docker's vocabulary has no meaning for a text file on disk:
+ * `since` and `until` would mean parsing a timestamp out of every line, which would tie
+ * this service to a log format nobody has agreed to as a contract; `timestamps` is
+ * already part of the line; and there are no separate streams to select between. Saying
+ * so is better than accepting them and quietly doing nothing, which is the behaviour this
+ * replaced.
+ */
+export function buildFileLogOptions(
+  query: Record<string, unknown>,
+  component: string
+): { tail: number | "all" } {
+  if (query.follow !== undefined) {
+    throw new UnsupportedQueryError(
+      "'follow' is not supported yet: nginx buffers this endpoint, so a followed " +
+        "stream would never reach you. Tracked in issue #83."
+    );
+  }
+
+  for (const name of ["since", "until", "timestamps", "stdout", "stderr"]) {
+    if (query[name] !== undefined) {
+      throw new QueryError(
+        `'${name}' is not supported for '${component}', which is not a container - ` +
+          `its log is a file on disk. Only 'tail' applies.`
+      );
+    }
+  }
+
+  const tail = tailValue(query.tail);
+  return { tail: tail === "all" ? "all" : Number(tail) };
+}
+
 export function buildDockerLogQuery(
   query: Record<string, unknown>,
   nowMillis: number = Date.now()
