@@ -74,6 +74,14 @@ def test_get_initial_response(mocker: MockerFixture) -> None:
                 "LastError": "",
                 "ConsecutiveFailures": 0,
             },
+            # All zeroes on a healthy node: every poll finished before the next started.
+            "Poll": {
+                "ConsecutiveSkips": 0,
+                "TotalSkips": 0,
+                "LastSkipAt": "",
+                "LongestHeldSeconds": 0,
+                "Kills": 0,
+            },
         },
     }
 

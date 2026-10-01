@@ -37,6 +37,20 @@ class Updater(TypedDict):
     ConsecutiveFailures: int
 
 
+class Poll(TypedDict):
+    """What the once-a-minute poll itself did.
+
+    Recorded by run-control.sh rather than by control, which cannot see a tick it never
+    ran. All zeroes on a healthy node: every poll finished before the next one started.
+    """
+
+    ConsecutiveSkips: int
+    TotalSkips: int
+    LastSkipAt: str
+    LongestHeldSeconds: int
+    Kills: int
+
+
 class Payload(TypedDict):
     """Further breakdown of the status object"""
 
@@ -47,6 +61,7 @@ class Payload(TypedDict):
     ImageDrift: List[Dict[str, Any]]
     StaleComponents: List[Dict[str, Any]]
     Updater: Updater
+    Poll: Poll
 
 
 class Status(TypedDict):

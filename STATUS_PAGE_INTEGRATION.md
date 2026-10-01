@@ -140,6 +140,30 @@ Everything about updating, as fields rather than prose. Before this the only way
 
 There is no `updating` state. An update holds the poll lock for its whole duration and the status file is written after the poll finishes, so nothing writes a status *during* one — `Timestamp` simply stops advancing until it completes. A node mid-update looks like a node whose status has gone stale, and for a long update that is the honest reading.
 
+### `Payload.Poll`
+
+```json
+{ "ConsecutiveSkips": 0, "TotalSkips": 0, "LastSkipAt": "", "LongestHeldSeconds": 0, "Kills": 0 }
+```
+
+Control runs from cron once a minute, and a poll that is still running when the next tick fires makes that tick skip rather than start a second one on top of it. This block says how often that has happened.
+
+**All zeroes is the normal, healthy state** and will be what you see almost always. It means every poll finished before the next one started.
+
+| Field | Meaning |
+|---|---|
+| `ConsecutiveSkips` | skips in an unbroken run, cleared the moment a poll takes the lock. **This is the one that says whether something is wrong right now.** |
+| `TotalSkips` | never cleared, so it survives the problem passing |
+| `LastSkipAt` | UTC, trailing `Z` |
+| `LongestHeldSeconds` | the longest hold ever observed on this node, not the most recent |
+| `Kills` | times a poll was held past 20 minutes and had to be killed |
+
+A handful of skips is unremarkable — an update that builds images from source takes most of a minute, so a tick skipping during one is the mechanism working. A *rising* `ConsecutiveSkips` is the signal: it means one poll has been running for that many minutes.
+
+`Kills` stops rising after three by design. The shell caps it and then reports instead of killing, so that a poll which is slow rather than stuck is not killed and restarted forever. **`Kills` at the cap with `ConsecutiveSkips` still climbing is a node that needs a human** — it is stuck, and the node has already stopped trying to fix itself.
+
+This is recorded by `run-control.sh`, not by control. Control only ever runs while holding the lock, so from the inside it would always see "held by me" and could never see a tick it did not run.
+
 ### `Status` and `Error`
 
 `Status` is control's own summary, entries joined with `, ` and each prefixed `• `. Individual messages never contain a comma, so splitting on `, ` is safe.

@@ -23,3 +23,8 @@ updater_log_file = os.path.join(UPDATER_DIR, "log.txt")
 # anything that has to be counted across ticks - how many times an update has failed in a
 # row, most of all - cannot live in memory.
 update_state_file = os.path.join(CONTROL_DIR, "update_state.json")
+
+# Written by run-control.sh, which is the only thing that can see a skipped tick: control
+# runs only while holding the lock, so from the inside it is always held by itself.
+poll_state_file = os.path.join(CONTROL_DIR, "poll.state")
+poll_kills_file = os.path.join(CONTROL_DIR, "poll.kills")

@@ -104,6 +104,55 @@ POLL_KILL_AFTER_SECONDS="${POLL_KILL_AFTER_SECONDS:-1200}"
 POLL_KILL_CAP="${POLL_KILL_CAP:-3}"
 KILL_COUNT_FILE="$CONTROL_DIR/poll.kills"
 
+# What the poll itself did, for control to fold into its status. Control cannot observe any
+# of this on its own: it only ever runs while holding the lock, so it would always see
+# "held by me" and never see the ticks that were skipped. Plain key=value rather than JSON,
+# so this stays dependency-free shell - the venv may not even exist yet at this point.
+POLL_STATE_FILE="$CONTROL_DIR/poll.state"
+
+poll_state_value() {
+  local value
+  value="$(grep -E "^$1=" "$POLL_STATE_FILE" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+  [ -n "$value" ] && printf '%s' "$value" || printf '%s' "$2"
+}
+
+write_poll_state() {
+  # Written whole each time rather than appended to, so the file cannot grow without bound
+  # and a reader never sees two generations of the same key.
+  cat > "$POLL_STATE_FILE" <<POLL_STATE
+consecutive_skips=$1
+total_skips=$2
+last_skip_at=$3
+longest_held_seconds=$4
+POLL_STATE
+}
+
+record_skipped_tick() {
+  local age="$1" longest
+  longest="$(poll_state_value longest_held_seconds 0)"
+
+  [[ "$age" =~ ^[0-9]+$ ]] || age=0
+  [[ "$longest" =~ ^[0-9]+$ ]] || longest=0
+  [ "$age" -gt "$longest" ] && longest="$age"
+
+  write_poll_state \
+    "$(( $(poll_state_value consecutive_skips 0) + 1 ))" \
+    "$(( $(poll_state_value total_skips 0) + 1 ))" \
+    "$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')" \
+    "$longest"
+}
+
+record_acquired_lock() {
+  # Only the consecutive run is cleared. The totals and the longest hold are the record of
+  # what this node has been through, and resetting them on every successful poll would
+  # erase the evidence a minute after the problem passed.
+  write_poll_state \
+    0 \
+    "$(poll_state_value total_skips 0)" \
+    "$(poll_state_value last_skip_at '')" \
+    "$(poll_state_value longest_held_seconds 0)"
+}
+
 # Field 22 of /proc/<pid>/stat is the process start time in clock ticks. It is read from
 # after the comm field, which is parenthesised and may contain spaces, so counting fields
 # from the left of the line is not safe.
@@ -145,6 +194,7 @@ report_held_lock() {
 
   if [ -z "$pid" ] || ! [[ "$pid" =~ ^[0-9]+$ ]]; then
     log "Poll still running but its holder file is missing or unreadable ($HOLDER_FILE) - skipping this tick"
+    record_skipped_tick 0
     return 0
   fi
 
@@ -154,13 +204,17 @@ report_held_lock() {
 
   if ! [[ "$age" =~ ^[0-9]+$ ]]; then
     log "Poll still running (pid $pid, age unknown) - skipping this tick"
+    record_skipped_tick 0
     return 0
   fi
 
   if [ "$age" -lt "$POLL_KILL_AFTER_SECONDS" ]; then
     log "Poll still running (pid $pid, held $(human_duration "$age")) - will be killed past $(human_duration "$POLL_KILL_AFTER_SECONDS") - skipping this tick"
+    record_skipped_tick "$age"
     return 0
   fi
+
+  record_skipped_tick "$age"
 
   kills="$(cat "$KILL_COUNT_FILE" 2>/dev/null || true)"
   [[ "$kills" =~ ^[0-9]+$ ]] || kills=0
@@ -215,6 +269,8 @@ if command -v flock >/dev/null 2>&1; then
     # does hold it or sees nothing at all. The start time pins the identity of the
     # process beyond PID reuse, which is what a later phase needs before it could signal
     # anything; phase 1 only ever reads this file to report.
+    record_acquired_lock
+
     starttime="$(proc_starttime "$$" || true)"
     printf '%s %s\n' "$$" "${starttime:-unknown}" > "$HOLDER_FILE"
     trap 'rm -f "$HOLDER_FILE"' EXIT

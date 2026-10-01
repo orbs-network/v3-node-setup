@@ -15,7 +15,8 @@ import identity
 import image_drift
 import staleness
 from logger import logger
-from system_monitor_types import Identity, Payload, Status, Updater, Version
+from poll_state import get_poll_report
+from system_monitor_types import Identity, Payload, Poll, Status, Updater, Version
 from updater import get_error, get_status_for_ui, get_updater_report, get_updating_state_for_ui, set_error, set_status_for_ui
 
 # Pseudo filesystems that are full by design and say nothing about real disk pressure.
@@ -63,6 +64,7 @@ class SystemMonitor:
             TargetCommit="", State="unknown", ScheduledFor=0, UpdatesDisabled=False,
             LastAttemptAt="", LastSuccessAt="", LastError="", ConsecutiveFailures=0,
         )
+        self.poll = Poll(ConsecutiveSkips=0, TotalSkips=0, LastSkipAt="", LongestHeldSeconds=0, Kills=0)
         self.version = ""
         self.start_time = datetime.now().timestamp()
 
@@ -92,6 +94,7 @@ class SystemMonitor:
                 ImageDrift=self.image_drift,
                 StaleComponents=self.stale_components,
                 Updater=self.updater,
+                Poll=self.poll,
             ),
         )
 
@@ -143,6 +146,7 @@ class SystemMonitor:
         self.extra = get_updating_state_for_ui()
         # Read after compare() has run, so it describes the poll that just happened.
         self.updater = get_updater_report()
+        self.poll = get_poll_report()
 
         self.metrics = metrics
         self.services = self._get_docker_service_info()
