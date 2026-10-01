@@ -135,7 +135,7 @@ export function buildDockerLogQuery(
   if (query.follow !== undefined) {
     throw new UnsupportedQueryError(
       "'follow' is not supported yet: nginx buffers this endpoint, so a followed " +
-        "stream would never reach you. Tracked in issue #69."
+        "stream would never reach you. Tracked in issue #83."
     );
   }
 

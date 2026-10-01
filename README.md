@@ -409,22 +409,36 @@ as applied, and never actually ran (#71).
 GET /service/<container>/logs
 ```
 
-Returns `text/plain`. With no parameters you get the whole log. The query parameters are
-Docker's own, passed through to the daemon: `tail`, `since`, `until`, `timestamps`,
-`stdout`, `stderr`. `since` and `until` accept unix seconds, RFC3339, or a relative age
-like `15m`. A malformed value returns `400` naming the parameter; unknown parameters are
-ignored.
+Returns `text/plain`. With no parameters you get the whole log, which is what this
+endpoint has always done. The query parameters are Docker's own, passed through to the
+daemon, so anyone who knows `docker logs` knows this endpoint.
+
+| Parameter | Values | Meaning |
+|---|---|---|
+| `tail` | non-negative integer, or `all` (default) | only the last N lines |
+| `since` | unix seconds, RFC3339, or a relative age like `15m` / `2h` | only entries after this point |
+| `until` | same as `since` | only entries before this point |
+| `timestamps` | `1/0`, `true/false` (default off) | prefix each line with its timestamp |
+| `stdout` | `1/0`, `true/false` (default on) | include stdout |
+| `stderr` | `1/0`, `true/false` (default on) | include stderr |
+
+That is the complete set. A malformed value returns `400` naming the parameter rather
+than being silently dropped; unknown parameters are ignored.
 
 ```bash
 curl 'http://<node>/service/ethereum-writer/logs?tail=100'
 curl 'http://<node>/service/vm-lambda/logs?since=15m&timestamps=1'
+curl 'http://<node>/service/signer/logs?since=2026-09-30T10:00:00Z&until=30m'
 ```
 
 Full detail in **[logging/README.md](logging/README.md)**. Worth knowing here:
 
 - **`follow` returns `501`.** Streaming works server-side, but nginx buffers this location,
   so a followed stream would sit in nginx and never reach the client. Needs
-  `proxy_buffering off`. Issue #69.
+  `proxy_buffering off`. Issue #83.
+- **`head`, byte counts and `grep` are not supported.** None of them map to a Docker
+  parameter, so they would have to be implemented locally, with early teardown of the
+  upstream request and a cap on user-supplied patterns.
 - **The response is streamed, not buffered.** A container keeps up to 150MB of logs
   (`50m` × `3`, set by the `x-logging` anchor in `docker-compose.yml`) and the daemon reads
   across the rotated files, so an unfiltered request can return all of it. Streaming makes
@@ -497,6 +511,9 @@ read both by `docker compose` and by `scripts/run-control.sh`.
 - **#41** — nginx `boyar` → `control` routing does not work.
 - **#68** — `control`, `updater` and `recovery` logs are served statically and support no
   flags at all. Parked deliberately.
+- **#82** — nothing stops cron starting a second control process while an update is still
+  running. An update that builds the logger takes most of the 60 second interval.
+- **#83** — `follow` on the log endpoint, which needs `proxy_buffering off` in nginx.
 - **#72–#80** — tidy-ups found while writing this README: test scaffolding on the readers,
   stale installer defaults, a dead `errors_file`, a broken smoke-test workflow, a shadowed
   `test.conf`. All verified, all low priority, all parked.

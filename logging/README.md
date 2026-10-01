@@ -39,7 +39,7 @@ parameter rather than being silently dropped.
 - **`follow` is not supported yet** and returns `501`. Streaming is in place
   server-side, but nginx buffers this location, so a followed stream would
   never reach the client. It needs `proxy_buffering off` in the nginx log
-  location block. Tracked in issue #69.
+  location block. Tracked in issue #83.
 - **`tail` is applied before the stream filter, by the daemon.** So
   `?tail=1&stderr=0` returns nothing if the very last line happened to go to
   stderr. That is Docker's behaviour, faithfully passed through, not a bug here.
