@@ -584,17 +584,17 @@ def compare():
     _target_commit = scheduled_commit_hash
 
     if updateMode == "scheduled":
-        logger.info("Scheduled update mode")
+        logger.debug("Scheduled update mode")
         updateResolution = metadata.get("updateResolution", 1440)
-        logger.info(f"Update resolution: {updateResolution} minutes")
+        logger.debug(f"Update resolution: {updateResolution} minutes")
         timeToUpdate = get_my_update_schedule_window_time(updateResolution, scheduled_commit_hash)
         updateTargetTime = int(timeToUpdate.timestamp())
 
         set_status_for_ui(f"Update scheduled for {timeToUpdate}")
 
-        logger.info(f"Time to update: {timeToUpdate}")
+        logger.debug(f"Time to update: {timeToUpdate}")
         if datetime.now() < timeToUpdate:
-            logger.info("Not my time to update")
+            logger.debug("Not my time to update")
             return
 
     updateTargetTime = 0
@@ -611,7 +611,10 @@ def compare():
         logger.info(f"No applied commit on record, adopting the checked out {current_commit_hash}")
 
     if is_checked_out and applied_commit == current_commit_hash:
-        logger.info(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
+        # Debug, not info: this fires on every one of the 1440 polls a day, and the same
+        # fact is now in Payload.Updater as AppliedCommit with State "idle". Repeating it
+        # every minute would bury the updater's actual actions in its own log.
+        logger.debug(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}, scheduled commit hash: {scheduled_commit_hash}")
         set_status_for_ui(f"I'm up to date with commit hash: {current_commit_hash} / {current_git_tag}")
     else:
         if is_checked_out:
