@@ -43,9 +43,11 @@ process, so the logger being recreated with a new address left every log request
 for a day (#70). Only a variable re-resolves. An `upstream` block does not fix it either.
 
 Three legacy names are rewritten: `/services/…` → `/service/…`,
-`/service/management-service/…` → `/service/ethereum-reader/…`, and
-`/service/logs-service/…` → `/service/logger/…`. A fourth, `/service/boyar/…` →
-`/service/control/…`, is configured but does not work — issue #41.
+`/service/management-service/…` → `/service/ethereum-reader/…`,
+`/service/logs-service/…` → `/service/logger/…`, and `/service/boyar/…` →
+`/service/control/…`. All four resolve; `boyar` was long believed broken (#41) and turned
+out to have been fixed in passing by the nginx work, confirmed byte-identical to the
+`control` routes before that issue was closed.
 
 Location order in `default.conf` is load-bearing: the `status` and `logs` locations are
 declared before the `vm-*` proxy block, so `/service/vm-lambda/status` serves the status
@@ -114,7 +116,9 @@ This is the part that surprises people.
 - **It never learns, stores or verifies an eth address.** A node installation establishes
   only a *node address*. The eth address is the guardian identity, and it is coupled to
   the node address **on chain**, by a human on a web page, never during installation.
-  Nothing in this repo learns which Ethereum account was used. See issue #65.
+  Control resolves it afterwards at runtime, by matching the node address against
+  `CurrentTopology` in the ethereum-reader status, and publishes it in `Payload.Identity`
+  (#65) — but the installer itself neither asks for it nor stores it.
 - **Guardian name and website are prompted and then discarded.** They are not written to
   `.env`. Their only use is to build a registration URL:
   `https://guardians.orbs.network?name=…&website=…&ip=…&node_address=…`, printed once,
@@ -432,9 +436,10 @@ curl 'http://<node>/service/signer/logs?since=2026-09-30T10:00:00Z&until=30m'
 
 Full detail in **[logging/README.md](logging/README.md)**. Worth knowing here:
 
-- **`follow` returns `501`.** Streaming works server-side, but nginx buffers this location,
-  so a followed stream would sit in nginx and never reach the client. Needs
-  `proxy_buffering off`. Issue #83.
+- **`follow` returns `501`.** Poll with `tail` instead. A live stream would need
+  `proxy_buffering off` on this location, which would unbuffer every other request
+  through it too, and hold a Docker log stream open per viewer. Decided against in #83;
+  `docker logs -f` over SSH is the tool for the cases that genuinely need it.
 - **`head`, byte counts and `grep` are not supported.** None of them map to a Docker
   parameter, so they would have to be implemented locally, with early teardown of the
   upstream request and a cap on user-supplied patterns.
@@ -470,9 +475,9 @@ Three things differ from a container, deliberately:
   than being accepted and ignored, which is the behaviour this replaced.
 - **Only the live file is read**, never the rotated `log.txt.1` beside it. A `tail` larger
   than the current file returns everything it holds rather than reaching further back.
-- **`updater` and `recovery` have routes but nothing writes their files**, so they return
-  `404`. Only `control` has a log today — see #85 for whether the other two should exist at
-  all, given the updater is a module inside control rather than a process of its own.
+- **`recovery` has a route but nothing writes its file**, so it returns `404`. `control`
+  and `updater` both have logs; the updater gained one with #85, written by a filter on its
+  own records so it rotates independently of control's.
 
 `tail` reads backwards from the end of the file in 64KB chunks rather than loading it, so
 asking a 10MB log for 300 lines reads about one chunk.
@@ -534,15 +539,19 @@ read both by `docker compose` and by `scripts/run-control.sh`.
 
 - **#67** — `vm-lambda` never refreshes its `status.json` timestamp. The service works
   fine; it has simply not said so since May. The fix belongs in the `vm-lambda` project.
-- **#41** — nginx `boyar` → `control` routing does not work.
-- **#83** — `follow` on the log endpoint, which needs `proxy_buffering off` in nginx.
+- **#84** — the logger's image hash differs on every node, because each builds it from
+  source, so it is not comparable across the fleet and `ImageDrift` cannot see it.
+- **#86** — the nginx configuration is not visible over HTTP.
 - **#72–#80** — tidy-ups found while writing this README: test scaffolding on the readers,
   stale installer defaults, a dead `errors_file`, a broken smoke-test workflow, a shadowed
   `test.conf`. All verified, all low priority, all parked.
 
-Closed on 2026-09-30, kept here because the lessons recur: **#70** (nginx caches a literal
-`proxy_pass` hostname at load — only a variable re-resolves), **#81** (nothing reloaded
+Decided against: **#83**, `follow` on the log endpoint. Poll with `tail` instead.
+
+Closed, kept here because the lessons recur: **#70** (nginx caches a literal `proxy_pass`
+hostname at configuration load — only a variable re-resolves), **#81** (nothing reloaded
 nginx, so config changes reached every node and never took effect), **#71** (the updater
-never built the logger, so `logging/` changes never shipped). The pattern behind all three
-is the same: a commit can be recorded as applied while part of what it changed is not
-actually running. Check that a change took effect, not just that it deployed.
+never built the logger, so `logging/` changes never shipped), **#82** (nothing stopped cron
+starting a second poll on top of a running one). The pattern behind the first three is the
+same: a commit can be recorded as applied while part of what it changed is not actually
+running. Check that a change took effect, not just that it deployed.

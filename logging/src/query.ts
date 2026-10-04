@@ -141,8 +141,8 @@ export function buildFileLogOptions(
 ): { tail: number | "all" } {
   if (query.follow !== undefined) {
     throw new UnsupportedQueryError(
-      "'follow' is not supported yet: nginx buffers this endpoint, so a followed " +
-        "stream would never reach you. Tracked in issue #83."
+      "'follow' is not supported: poll with 'tail' instead. Decided in issue #83 - " +
+        "unbuffering this location for a live stream would cost every other request."
     );
   }
 
@@ -168,8 +168,8 @@ export function buildDockerLogQuery(
   // to hand the caller a request that hangs forever.
   if (query.follow !== undefined) {
     throw new UnsupportedQueryError(
-      "'follow' is not supported yet: nginx buffers this endpoint, so a followed " +
-        "stream would never reach you. Tracked in issue #83."
+      "'follow' is not supported: poll with 'tail' instead. Decided in issue #83 - " +
+        "unbuffering this location for a live stream would cost every other request."
     );
   }
 

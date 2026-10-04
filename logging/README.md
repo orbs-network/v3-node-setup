@@ -36,18 +36,22 @@ parameter rather than being silently dropped.
 
 ### Things worth knowing
 
-- **`follow` is not supported yet** and returns `501`. Streaming is in place
-  server-side, but nginx buffers this location, so a followed stream would
-  never reach the client. It needs `proxy_buffering off` in the nginx log
-  location block. Tracked in issue #83.
+- **`follow` is not supported** and returns `501`. Poll with `tail` instead.
+  Streaming is in place server-side, but a live stream would need
+  `proxy_buffering off` on this nginx location, which would unbuffer every
+  other request through it as well, and each viewer would hold an open Docker
+  log stream for as long as their tab was open. Decided against in issue #83.
 - **`tail` is applied before the stream filter, by the daemon.** So
   `?tail=1&stderr=0` returns nothing if the very last line happened to go to
   stderr. That is Docker's behaviour, faithfully passed through, not a bug here.
 - **`head`, byte counts (`tail -c`) and `grep` are not supported.** None of them
   map to a Docker parameter, so they would need to be implemented locally.
-- **Non-container components** (`control`, `updater`, `recovery`) do not go
-  through this service at all — nginx serves their log files statically, so
-  none of the above applies to them. Tracked in issue #68.
+- **Non-container components** (`control`, `updater`, `recovery`) are served
+  from here too, by reading their log files rather than the Docker API, but
+  **only `tail` applies** to them. The rest of the parameters have no meaning
+  for a file on disk and return `400` naming the one at fault rather than being
+  accepted and ignored. `recovery` has a route but nothing writes its file, so
+  it returns `404`. See the repo README for the detail (#68).
 
 ## Retention
 
