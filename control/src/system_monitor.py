@@ -371,6 +371,19 @@ class SystemMonitor:
                 "Command": cmdConf,
                 "Environment": self.__get_filtered_env_vars(container.attrs["Config"]["Env"]),
                 "CreatedAt": container_attrs["Created"],
+                # Created is when the container object was made and changes only on a
+                # recreate. StartedAt changes every time it starts, so a container that
+                # crashed and was restarted keeps its CreatedAt and gets a new StartedAt -
+                # which means CreatedAt alone cannot show a restart. RestartCount is how
+                # many times the daemon has had to do it.
+                #
+                # Both of these also give a consumer something to compare a component's
+                # self-reported uptime against. Uptime well short of the time since
+                # StartedAt means the process restarted inside a container that did not,
+                # which nothing else here detects - the shape of the ethereum-writer hang
+                # that went unnoticed for three months.
+                "StartedAt": container_attrs["State"]["StartedAt"],
+                "RestartCount": container_attrs.get("RestartCount", 0),
                 "ExitedAt": container_attrs["State"]["FinishedAt"],
                 "Status": container_attrs["State"]["Status"],
                 "Running": container_attrs["State"]["Running"],

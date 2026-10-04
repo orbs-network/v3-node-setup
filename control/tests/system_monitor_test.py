@@ -15,7 +15,9 @@ def _container(mocker: MockerFixture, name: str, image_ref: str, repo_digests: o
         "Image": "sha256:imageid",
         "Config": {"Image": image_ref, "Cmd": ["npm", "start"], "Env": []},
         "Created": "2026-01-01T00:00:00Z",
+        "RestartCount": 0,
         "State": {
+            "StartedAt": "2026-01-01T00:00:05Z",
             "FinishedAt": "",
             "Status": "running",
             "Running": True,
@@ -193,3 +195,36 @@ def test_a_healthy_disk_is_silent(mocker: MockerFixture) -> None:
     SystemMonitor(client=mocker.Mock())._check_disk_usage([_disk("/", 43.5)])
 
     status.assert_not_called()
+
+
+def test_service_info_carries_started_at_and_restart_count(mocker: MockerFixture) -> None:
+    """Test that a restart is visible at all.
+
+    CreatedAt changes only when a container is recreated, so a container that crashed and
+    was restarted by the daemon keeps it and gets a new StartedAt. Without these two a
+    consumer cannot tell a restart from a quiet container, and has nothing to compare a
+    component's self-reported uptime against.
+    """
+
+    client = mocker.Mock()
+    container = _container(mocker, "logger", "v3-node-setup-logger", [])
+    container.attrs["RestartCount"] = 3
+    container.attrs["State"]["StartedAt"] = "2026-02-02T00:00:00Z"
+    client.containers.list.return_value = [container]
+
+    service = SystemMonitor(client=client)._get_docker_service_info()[0]
+
+    assert service["CreatedAt"] == "2026-01-01T00:00:00Z"
+    assert service["StartedAt"] == "2026-02-02T00:00:00Z"
+    assert service["RestartCount"] == 3
+
+
+def test_a_container_without_a_restart_count_reports_zero(mocker: MockerFixture) -> None:
+    """Test that an inspect payload missing the field does not break the report"""
+
+    client = mocker.Mock()
+    container = _container(mocker, "logger", "v3-node-setup-logger", [])
+    del container.attrs["RestartCount"]
+    client.containers.list.return_value = [container]
+
+    assert SystemMonitor(client=client)._get_docker_service_info()[0]["RestartCount"] == 0

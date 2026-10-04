@@ -42,7 +42,11 @@ Per running component:
 {
   "Name": "ethereum-reader",
   "ImageTag": "lukerogerson1/management-service:v2.7.1-immediate",
-  "ImageDigest": "sha256:0ed28c67738ca1d3ded50c30..."
+  "ImageDigest": "sha256:0ed28c67738ca1d3ded50c30...",
+  "CreatedAt": "2026-09-29T13:28:04.000Z",
+  "StartedAt": "2026-09-29T13:28:05.000Z",
+  "RestartCount": 0,
+  "Status": "running"
 }
 ```
 
@@ -52,22 +56,32 @@ Show **`ImageTag` plus a shortened `ImageDigest`**. Two components can run the s
 
 `ImageTag` is read from the **running container**, not from the compose file, so it is what is actually running. After a partial update the two can legitimately disagree, and that disagreement is real.
 
-### Container age, and why not `Uptime`
+### Telling a restart from a quiet container
 
-`Services[].CreatedAt` comes from the Docker daemon and is the right source for "how long has this been running". **Do not use each component's self-reported `Payload.Uptime` for that.** Measured across the fleet at one moment:
+Three fields, each catching something the other two cannot.
 
-| Component | self-reported `Uptime` | container age | |
-|---|---|---|---|
-| `ethereum-reader` | 421,723s = 4.88 days | 4.88 days | matches |
-| `vm-l3-dummy-service` | 19,169,202s = **221.87 days** | **4.07 days** | off by 54x |
-| `logger` | `0`, then `300`, then `600` | minutes | only advances every 5 minutes |
-| `signer`, `vm-verifier` | *no field at all* | | |
+| Field | Catches |
+|---|---|
+| `Services[].RestartCount` | the daemon has had to restart this container |
+| `Services[].StartedAt` vs `CreatedAt` | the container restarted without being recreated |
+| the component's own `Payload.Uptime` vs `StartedAt` | **the process restarted inside a container that did not** |
 
-Every component decides for itself what uptime means, how often to recompute it and whether to publish it at all. `CreatedAt` is one source for all ten, continuous rather than stepped, and cannot disagree with itself.
+`CreatedAt` changes only when a container is **recreated**, so on its own it cannot show a restart at all: a container that crashed and was brought back keeps its `CreatedAt` and gets a new `StartedAt`.
 
-Keep `Uptime` on screen if it is useful as the component's own claim — a component whose uptime disagrees wildly with its container age is itself a finding — but do not label it as the uptime.
+And a process that died and was brought back *inside* a still-running container changes neither. Only the component's own uptime reveals that, which is why each component publishes one. This fleet has already been bitten by that exact shape — `ethereum-writer` hung for three months while its container looked perfectly healthy.
 
-**`logger` reporting `Uptime: 0` is not a fault.** It writes its status once at startup and then every five minutes, computing uptime at write time, so any container younger than five minutes reports `0`. A container younger than five minutes usually means a recent deploy: an update that changes `logging/` rebuilds the image and recreates the container. An update that does not change it produces an identical image and leaves the container alone.
+**So read the divergence, not the number:**
+
+| Reading | Meaning |
+|---|---|
+| `Uptime` ≈ now − `StartedAt` | healthy — the process has been up as long as its container |
+| `Uptime` **much less than** now − `StartedAt` | the process restarted inside a running container. **Investigate.** Nothing else here detects it |
+| `Uptime` **much greater than** now − `StartedAt` | that component is computing uptime wrong. A reporting bug, still worth surfacing |
+| no `Uptime` field | unknown, which is not the same as fine |
+
+Siblings are the other half of it: components brought up by the same `docker compose up` should report similar uptimes. **An outlier among siblings is a hint to look, not a healthy row.**
+
+Two live examples at the time of writing. `vm-l3-dummy-service` reports 221.87 days on a container created 4.07 days ago — surfaced by exactly this comparison. `logger` writes its status once at startup and then every five minutes, so for the first five minutes of any container's life it reports `Uptime: 0`; that is a coarse clock, not a crash.
 
 ### `Payload.ImageDrift[]`
 
